@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TowerNet: Packet-Protocol</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo-wrap">
+    <span class="logo-top">TOWERNET</span>
+    <span class="logo-bot">PACKET-PROTOCOL</span>
+    <div id="player-badge" aria-live="polite">
+      <div class="pb-lbl">PLAYER:</div>
+      <div class="pb-name" id="tb-player">GUEST</div>
+    </div>
+  </div>
+  <div class="tb-div"></div>
+  <div class="tb-block">
+    <div class="tb-lbl">WAVE</div>
+    <div class="tb-val" id="tb-wave">1 / 10</div>
+  </div>
+  <div class="tb-div"></div>
+  <div class="tb-lbl" style="font-size:9px;color:#5a8aaa;letter-spacing:1px;font-family:'Share Tech Mono',monospace;margin-right:8px">PREPARATION TIME</div>
+  <div class="timer-wrap">
+    <div class="timer-ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 44 44">
+        <circle class="rring" cx="22" cy="22" r="19"/>
+        <circle class="rprog" id="rprog" cx="22" cy="22" r="19"/>
+      </svg>
+      <div class="timer-inner" id="t-inner">30</div>
+    </div>
+    <div class="tb-val grn" id="tb-timer" style="font-size:28px">00:30</div>
+  </div>
+  <div class="tb-div"></div>
+  <div style="display:flex;align-items:center;gap:7px">
+    <span style="font-size:22px">🪙</span>
+    <div class="tb-block">
+      <div class="tb-lbl">COINS</div>
+      <div class="tb-val yel" id="tb-coins">200</div>
+    </div>
+  </div>
+  <div class="tb-div"></div>
+  <div class="hp-wrap">
+    <div class="tb-lbl">SERVER INTEGRITY</div>
+    <div class="hp-row">
+      <span class="hp-pct" id="tb-hppct">100%</span>
+      <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpfill" style="width:100%"></div></div>
+      <div class="srv-icon">🖥️</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <button class="tb-btn"><span>📖</span>LOG</button>
+    <button class="tb-btn" id="pauseBtn" onclick="togglePause()" aria-pressed="false" title="Pause or resume the game"><span>⏸</span>PAUSE</button>
+    <button class="tb-btn"><span>⚙️</span>MENU</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+<!-- LEFT / ENEMY PACKETS -->
+<div id="left">
+  <div class="p-sec" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div class="p-title">INCOMING PACKETS (ENEMY)</div>
+    <div class="enemy-note">Threat roster currently visible on the network.</div>
+    <div class="pkt-row enemy-list">
+      <div class="pkt-card">
+        <span class="pkt-art">📡</span>
+        <div class="pkt-name" style="color:#aaaaaa">PHYSICAL</div>
+        <div class="pkt-lyr" style="color:#888">LAYER 1 - PHYSICAL</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">40</b></span><span>SPD: <b style="color:#c8e0f4">MED</b></span></div>
+        <div class="pkt-stat-row"><span>Weakest opener</span><span></span></div>
+      </div>
+      <div class="pkt-card">
+        <span class="pkt-art">👻</span>
+        <div class="pkt-name" style="color:#4488ff">DATA LINK</div>
+        <div class="pkt-lyr" style="color:#2266cc">LAYER 2 - DATA LINK</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">52</b></span><span>SPD: <b style="color:#c8e0f4">FAST</b></span></div>
+        <div class="pkt-stat-row"><span>Quick and tricky</span><span></span></div>
+      </div>
+      <div class="pkt-card">
+        <span class="pkt-art">🌊</span>
+        <div class="pkt-name" style="color:#00cc55">NETWORK</div>
+        <div class="pkt-lyr" style="color:#009940">LAYER 3 - NETWORK</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">78</b></span><span>SPD: <b style="color:#c8e0f4">MED</b></span></div>
+        <div class="pkt-stat-row"><span>Stable mid-tier threat</span><span></span></div>
+      </div>
+      <div class="pkt-card">
+        <span class="pkt-art">💣</span>
+        <div class="pkt-name" style="color:#ff8800">TRANSPORT</div>
+        <div class="pkt-lyr" style="color:#cc5500">LAYER 4 - TRANSPORT</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">104</b></span><span>SPD: <b style="color:#c8e0f4">MED</b></span></div>
+        <div class="pkt-stat-row"><span>Heavy pressure packet</span><span></span></div>
+      </div>
+      <div class="pkt-card">
+        <span class="pkt-art">🕵️</span>
+        <div class="pkt-name" style="color:#9b59b6">SESSION</div>
+        <div class="pkt-lyr" style="color:#7a3a9a">LAYER 5 - SESSION</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">128</b></span><span>SPD: <b style="color:#c8e0f4">SLOW</b></span></div>
+        <div class="pkt-stat-row"><span>Disables towers</span><span></span></div>
+      </div>
+      <div class="pkt-card">
+        <span class="pkt-art">🔐</span>
+        <div class="pkt-name" style="color:#00cccc">PRESENTATION</div>
+        <div class="pkt-lyr" style="color:#009999">LAYER 6 - PRESENTATION</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">150</b></span><span>SPD: <b style="color:#c8e0f4">SLOW</b></span></div>
+        <div class="pkt-stat-row"><span>Reduces dmg</span><span></span></div>
+      </div>
+      <div class="pkt-card">
+        <span class="pkt-art">🦠</span>
+        <div class="pkt-name" style="color:#ff3355">APPLICATION</div>
+        <div class="pkt-lyr" style="color:#cc1133">LAYER 7 - APPLICATION</div>
+        <div class="pkt-stat-row"><span>HP: <b style="color:#c8e0f4">176</b></span><span>SPD: <b style="color:#c8e0f4">SLOW</b></span></div>
+        <div class="pkt-stat-row"><span>Strongest final threat</span><span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAP ── -->
+<div id="mapwrap">
+  <canvas id="canvas"></canvas>
+  <div id="mobile-panel-tabs" aria-label="Mobile panels">
+    <button type="button" onclick="toggleMobilePanel('left')">PACKETS</button>
+    <button type="button" onclick="toggleMobilePanel('right')">SERVER</button>
+  </div>
+  <div id="phase-banner">PREP PHASE</div>
+  <div id="map-notifs"></div>
+  <div id="wave-done">
+    <div class="wd-title">✓ WAVE CLEARED</div>
+    <div class="wd-sub" id="wd-sub">Wave 1 complete! Bonus coins awarded.</div>
+    <button class="wd-btn" onclick="doNextWave()">▶ NEXT WAVE</button>
+  </div>
+
+<!-- TOWER PANEL BAR -->
+<div id="pkt-bar">
+  <div class="pkt-bar-title">TOWER PANEL</div>
+  <div class="tower-grid">
+  <div class="p-sec tower-sec">
+      <div class="p-title">TOWER PANEL</div>
+      <div class="tcard-row">
+        <div class="tcard sel" id="tc-CableShield" onclick="selType('CableShield')">
+          <div class="tc-art l1-art">🔌</div>
+          <div class="tc-name">CABLE SHIELD</div><div class="tc-lyr">LAYER 1</div>
+          <div class="tc-cost" id="tc-cost-CableShield">COST 50</div>
+        </div>
+        <div class="tcard" id="tc-IDS" onclick="selType('IDS')">
+          <div class="tc-art ids-art">🔭</div>
+          <div class="tc-name">IDS</div><div class="tc-lyr">LAYER 2</div>
+          <div class="tc-cost" id="tc-cost-IDS">COST 75</div>
+        </div>
+        <div class="tcard" id="tc-Router" onclick="selType('Router')">
+          <div class="tc-art rtr-art">🔀</div>
+          <div class="tc-name">ROUTER</div><div class="tc-lyr">LAYER 3</div>
+          <div class="tc-cost" id="tc-cost-Router">COST 100</div>
+        </div>
+        <div class="tcard locked" id="tc-Firewall" onclick="selType('Firewall')">
+          <div class="tc-art fw-art">🧱</div>
+          <div class="tc-name">FIREWALL</div><div class="tc-lyr">LAYER 4</div>
+          <div class="tc-cost" id="tc-cost-Firewall">COST 125</div>
+          <div class="unlock-lbl">Unlocks at Level 4</div>
+          <span class="lock-badge">🔒</span>
+        </div>
+      </div>
+      <div class="tcard-row secondary" style="margin-top:5px">
+        <div class="tcard locked" id="tc-SessionMonitor" onclick="selType('SessionMonitor')">
+          <div class="tc-art l5-art">👁️</div>
+          <div class="tc-name">SESSION MON.</div><div class="tc-lyr">LAYER 5</div>
+          <div class="tc-cost" id="tc-cost-SessionMonitor">COST 150</div>
+          <div class="unlock-lbl">Unlocks at Level 5</div>
+          <span class="lock-badge">🔒</span>
+        </div>
+        <div class="tcard locked" id="tc-EncryptGateway" onclick="selType('EncryptGateway')">
+          <div class="tc-art l6-art">🔑</div>
+          <div class="tc-name">ENCRYPT GW</div><div class="tc-lyr">LAYER 6</div>
+          <div class="tc-cost" id="tc-cost-EncryptGateway">COST 175</div>
+          <div class="unlock-lbl">Unlocks at Level 6</div>
+          <span class="lock-badge">🔒</span>
+        </div>
+        <div class="tcard locked" id="tc-Antivirus" onclick="selType('Antivirus')">
+          <div class="tc-art av-art">🛡️</div>
+          <div class="tc-name">ANTIVIRUS</div><div class="tc-lyr">LAYER 7</div>
+          <div class="tc-cost" id="tc-cost-Antivirus">COST 200</div>
+          <div class="unlock-lbl">Unlocks at Level 7</div>
+          <span class="lock-badge">🔒</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-sec tower-sec">
+      <div class="p-title">SELECTED TOWER INFO</div>
+      <div class="sti-wrap">
+        <div class="sti-art l1-art" id="sti-art">🔌</div>
+        <div class="sti-right">
+          <div class="sti-name" id="sti-name">CABLE SHIELD</div>
+          <div class="sti-sub" id="sti-sub">Physical Layer Protection<br>Layer 1 – Physical Layer</div>
+          <div class="sti-ip-lbl">IP ADDRESS</div>
+          <div class="ip-copy-row">
+            <div class="ip-box" id="sti-ip">—</div>
+            <button class="copy-btn" onclick="copyIP()">⎘ COPY</button>
+          </div>
+          <div class="sti-status-row">
+            <div class="sdot off" id="sti-dot"></div>
+            <span class="stxt off" id="sti-stxt">OFFLINE</span>
+          </div>
+        </div>
+      </div>
+        <div class="sti-3stats" style="margin-top:8px">
+          <div class="sstat"><div class="sstat-l">BASE DAMAGE</div><div class="sstat-v" id="sti-dmg">15</div></div>
+          <div class="sstat"><div class="sstat-l">RANGE</div><div class="sstat-v" id="sti-range">2.7</div></div>
+          <div class="sstat"><div class="sstat-l">FIRE RATE</div><div class="sstat-v" id="sti-rate">0.8s</div></div>
+        </div>
+        <div class="tower-meta">
+          <div class="meta-box"><div class="meta-l">LEVEL</div><div class="meta-v" id="meta-level">L1/3</div></div>
+          <div class="meta-box"><div class="meta-l">UPGRADE</div><div class="meta-v" id="meta-upg">SELECT</div></div>
+          <div class="meta-box"><div class="meta-l">SELL</div><div class="meta-v" id="meta-sell">SELECT</div></div>
+        </div>
+      </div>
+
+    <div class="p-sec tower-sec">
+      <div class="p-title">TOWER ACTIONS</div>
+      <div class="act-row">
+        <button class="act act-place" onclick="activatePlace()">📡 PLACE TOWER</button>
+        <button class="act act-upg" id="upg-btn" onclick="upgradeTower()">⬆ UPGRADE<div class="act-coin" id="upg-cost">--</div></button>
+        <button class="act act-sell" id="sell-btn" onclick="sellTower()">💰 SELL<div class="act-coin" id="sell-value">--</div></button>
+      </div>
+    </div>
+
+    <div class="p-sec tower-sec" style="overflow:hidden;display:flex;flex-direction:column">
+      <div class="p-title">TOWER LIST (<span id="tcount">0</span> / 10)</div>
+      <div class="tlist-scroll" id="tlist"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ── RIGHT ── -->
+<div id="right">
+  <div class="sp-header">
+    <div class="sp-htitle">SERVER PANEL</div>
+    <div class="ctt-label">CONNECT TO TOWER</div>
+    <div class="ip-field-label">Enter Tower IP Address</div>
+    <input class="ip-field" id="ip-input" type="text" placeholder="192.168.1.XX" maxlength="15">
+    <button class="conn-btn" onclick="doConnect()">✈ CONNECT</button>
+  </div>
+
+  <div class="p-sec" style="padding:8px 12px">
+    <div class="rp-title" style="margin-bottom:6px">CONNECTION STATUS</div>
+    <div class="cs-box" id="cs-box">
+      <div class="cs-idle" id="cs-content">Ready to connect.</div>
+    </div>
+  </div>
+
+  <div class="p-sec" style="padding:8px 12px">
+    <div class="rp-title" style="margin-bottom:6px">CONNECTION LOG</div>
+    <div class="clog-scroll" id="clog"></div>
+  </div>
+
+  <div class="p-sec" style="padding:8px 12px;flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div class="rp-title" style="margin-bottom:6px">SERVER NOTIFICATIONS</div>
+    <div class="sn-scroll" id="snots"></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <div class="ov-box">
+    <div class="ov-logo">TOWERNET</div>
+    <div class="ov-sub">PACKET · PROTOCOL</div>
+    <div class="ov-desc">
+      Defend your <b>Main Server</b> against all 7 OSI layers of attack.<br>
+      Place towers → Connect IPs → Survive 10 waves!<br><br>
+      <span style="font-size:11px">Layer matching = bonus damage. Layer mismatch = penalty.</span>
+    </div>
+    <button class="ov-btn" onclick="startGame()">▶ BOOT SYSTEM</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
