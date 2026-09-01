@@ -3,6 +3,9 @@
 // ══════════════════════════════════════════
 const MAX_WAVE = 10;
 const MAX_TOWERS = 10;
+const FIX_SERVER_COST = 500;
+const FIX_SERVER_USES = 3;
+const FIX_SERVER_HEAL = 30;
 const START_UNLOCKED = new Set(['CableShield','IDS','Router']);
 const UNLOCK_WAVE = {Firewall:4, SessionMonitor:5, EncryptGateway:6, Antivirus:7};
 const LCOL = {1:'#aaaaaa',2:'#4488ff',3:'#00cc55',4:'#ff8800',5:'#9b59b6',6:'#00cccc',7:'#ff3355'};
@@ -60,7 +63,9 @@ function fresh(){
     enemies:[],spawnT:0,spawnIv:2.0,
     wdone:false,
     unlocked:new Set(START_UNLOCKED),
-    playerName:''
+    playerName:'',
+    fixUsesLeft:FIX_SERVER_USES,
+    fixHealing:null
   };
 }
 
@@ -313,7 +318,6 @@ function packetNote(pkt){
   }[pkt.n]||'';
 }
 
-<<<<<<< HEAD
 function packetsForWave(wave){
   const idx=Math.max(0,Math.min(MAX_WAVE,wave||1)-1);
   const bp=WAVE_BLUEPRINTS[idx]||WAVE_BLUEPRINTS[0];
@@ -325,12 +329,6 @@ function renderEnemyRoster(wave=S?.wave||1){
   const list=document.querySelector('.enemy-list');
   if(!list)return;
   list.innerHTML=packetsForWave(wave).map(pkt=>`
-=======
-function renderEnemyRoster(){
-  const list=document.querySelector('.enemy-list');
-  if(!list)return;
-  list.innerHTML=PDEFS.map(pkt=>`
->>>>>>> 7e612e3782a2c1c3dabc83717f3664df95efd825
       <div class="pkt-card">
         <span class="pkt-art">${pkt.icon}</span>
         <div class="pkt-name" style="color:${pkt.col}">${pkt.n.toUpperCase()}</div>
@@ -674,6 +672,31 @@ function sellTower(){
   addSN('yel','💰',`${t.def.lbl} sold`,`+${value} coins refunded`);
 }
 
+function buyFixServer(){
+  if(gamePaused){mn('Game paused. Resume to use items.','dmg');return;}
+  if(!S||S.over){mn('System not ready.','dmg');return;}
+  if(S.fixUsesLeft<=0){mn('Fix Server uses depleted for this game.','dmg');return;}
+  if(S.hp>=100){mn('Server integrity at 100%. Repair not needed.','dmg');return;}
+  if(S.coins<FIX_SERVER_COST){mn(`Not enough coins! Need ${FIX_SERVER_COST}.`,'dmg');return;}
+  S.coins-=FIX_SERVER_COST;
+  S.fixUsesLeft--;
+  S.fixHealing={progress:0,duration:2.5};
+  updCoins();
+  syncFixServerButton();
+  addLog('ok',ts(),'Fix Server initiated (+'+FIX_SERVER_HEAL+'% HP over 2.5s)');
+  addSN('blu','🔧','Server Repair',`Starting healing process... [${S.fixUsesLeft} uses left]`);
+  mn('🔧 Server repair initiated...','ok');
+}
+
+function syncFixServerButton(){
+  const btn=document.getElementById('fixServerBtn');
+  if(!btn)return;
+  const canUse=S&&!S.over&&S.fixUsesLeft>0&&S.hp<100;
+  const canAfford=S&&S.coins>=FIX_SERVER_COST;
+  btn.disabled=!canUse||!canAfford;
+  btn.title=!canUse?`Uses: ${S.fixUsesLeft||0}/3${S.hp>=100?' (Server at 100%)':''}`:`Cost: ${FIX_SERVER_COST} coins`;
+}
+
 //  CANVAS EVENTS
 // ══════════════════════════════════════════
 function canvasPoint(e){
@@ -683,10 +706,6 @@ function canvasPoint(e){
 function updateCanvasHover(x,y){
   S.mx=x;S.my=y;
   S.hover=S.towers.find(t=>dst(t.x,t.y,x,y)<22)||null;
-<<<<<<< HEAD
-=======
-  if(S.hover){refreshSel(S.hover);S.selTower=S.hover;}
->>>>>>> 7e612e3782a2c1c3dabc83717f3664df95efd825
 }
 canvas.addEventListener('pointermove',e=>{
   if(!S||S.over||gamePaused)return;
@@ -808,13 +827,14 @@ function mn(msg,type){
 // ═════════════════════════════════════════════════════════════════════════════
 //  UI UPDATES
 // ═════════════════════════════════════════════════════════════════════════════
-function updCoins(){document.getElementById('tb-coins').textContent=S.coins;}
+function updCoins(){document.getElementById('tb-coins').textContent=S.coins;syncFixServerButton();}
 function updHP(){
   const p=Math.max(0,S.hp);
   document.getElementById('tb-hppct').textContent=p+'%';
   document.getElementById('hpfill').style.width=p+'%';
   const fill=document.getElementById('hpfill');
   fill.style.background=p>50?'linear-gradient(90deg,#00aa44,#00ff80)':p>25?'linear-gradient(90deg,#aa8800,#ffcc00)':'linear-gradient(90deg,#aa0022,#ff2244)';
+  syncFixServerButton();
 }
 function banner(){
   const el=document.getElementById('phase-banner');
@@ -997,6 +1017,22 @@ function draw(){
   ctx.font='bold 10px Orbitron,monospace';ctx.fillStyle=fc;
   ctx.fillText(S.hp+'%',sp.x,sp.y+37);
 
+  // SERVER HEALING EFFECT
+  if(S.fixHealing){
+    const healProgress=S.fixHealing.progress;
+    const pulseAlpha=Math.sin(healProgress*Math.PI*4)*0.5+0.5;
+    ctx.save();
+    ctx.shadowColor='#00ff80';ctx.shadowBlur=30+healProgress*20;ctx.globalAlpha=pulseAlpha*0.8;
+    ctx.strokeStyle='#00ff80';ctx.lineWidth=2;
+    roundRect(ctx,sp.x-48,sp.y-40,96,80,10);
+    ctx.stroke();
+    ctx.restore();
+    // loading bar on server during healing
+    ctx.fillStyle='#00ff8044';
+    ctx.fillRect(sp.x-35,sp.y+40,70*healProgress,4);
+    ctx.strokeStyle='#00ff80';ctx.lineWidth=1;ctx.strokeRect(sp.x-35,sp.y+40,70,4);
+  }
+
   // TOWERS
   for(const t of S.towers){
     const lvl=towerLevel(t);
@@ -1101,6 +1137,18 @@ function loop(ts2){
     pacAnims=pacAnims.filter(a=>!a.done);
     S.towers.forEach(t=>{if(t.lhit)t.lhit.timer-=dt;});
 
+    // server healing
+    if(S.fixHealing){
+      S.fixHealing.progress+=dt/S.fixHealing.duration;
+      if(S.fixHealing.progress>=1){
+        const healAmount=Math.round(100*FIX_SERVER_HEAL/100);
+        S.hp=Math.min(100,S.hp+FIX_SERVER_HEAL);
+        S.fixHealing=null;
+        updHP();
+        addSN('grn','✅','Server Restored',`+${FIX_SERVER_HEAL}% integrity restored`);
+      }
+    }
+
     if(S.phase==='prep'){
       S.timer-=dt;
       const s=Math.ceil(S.timer);
@@ -1141,10 +1189,7 @@ function doNextWave(){
   setPaused(false,true);
   S.wave++;S.phase='prep';S.timer=28;S.wdone=false;
   document.getElementById('tb-wave').textContent=S.wave+' / '+MAX_WAVE;
-<<<<<<< HEAD
   renderEnemyRoster(S.wave);
-=======
->>>>>>> 7e612e3782a2c1c3dabc83717f3664df95efd825
   checkUnlocks();
   banner();addSN('grn','🔔','Prep Phase','Configure towers for Wave '+S.wave);
 }
@@ -1189,15 +1234,12 @@ function startGame(){
   S=fresh();S.playerName=playerName;ipSeq=10;pacAnims=[];
   setPaused(false,true);
   syncTowerLocks();
-  resize();updCoins();updHP();
+  resize();updCoins();updHP();syncFixServerButton();
   document.getElementById('tb-wave').textContent='1 / '+MAX_WAVE;
   document.getElementById('tb-timer').textContent='00:30';
   document.getElementById('tcount').textContent='0';
   document.getElementById('rprog').style.strokeDashoffset=0;
-<<<<<<< HEAD
   renderEnemyRoster(S.wave);
-=======
->>>>>>> 7e612e3782a2c1c3dabc83717f3664df95efd825
   selType('CableShield');banner();
   syncPlayerBadge();
   document.title=`TowerNet: ${displayNickname(playerName)} | Packet-Protocol`;
