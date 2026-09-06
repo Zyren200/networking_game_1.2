@@ -6,6 +6,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060c14}
 /* ─── ROOT ─── */
 #app{display:flex;flex-direction:column;width:100%;height:100%;background:#07111e;font-family:'Rajdhani',sans-serif;color:#c8e0f4;transition:opacity .18s ease}
 body:not(.game-ready) #app{opacity:0;pointer-events:none}
+#orientation-lock{display:none}
+.orientation-lock-box{text-align:center}
+.orientation-warning{font-size:44px;line-height:1;margin-bottom:18px}
+.orientation-phone{font-size:58px;line-height:1;color:#00aaff;margin-bottom:18px;text-shadow:0 0 18px #00aaff55}
+.orientation-phone span{display:inline-block;color:#00ff80;font-size:42px;vertical-align:middle;animation:orientation-spin 1.6s ease-in-out infinite}
+.orientation-title{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;letter-spacing:2px;color:#fff}
+.orientation-copy{max-width:280px;margin:12px auto 0;color:#8aaabb;font-size:14px;line-height:1.5}
+@keyframes orientation-spin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 
 /* ─── TOPBAR ─── */
 #topbar{
@@ -37,7 +45,8 @@ body:not(.game-ready) #app{opacity:0;pointer-events:none}
 .hp-bar-bg{flex:1;height:10px;background:#0a1e2e;border-radius:3px;border:1px solid #1a3a5c;overflow:hidden}
 .hp-bar-fill{height:100%;background:linear-gradient(90deg,#00aa44,#00ff80);border-radius:3px;transition:width .5s}
 /* server icon in topbar */
-.srv-icon{width:44px;height:36px;background:#0a1e30;border:1px solid #1a4a6a;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-left:8px}
+.srv-icon{width:44px;height:36px;background:#0a1e30;border:1px solid #1a4a6a;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-left:8px;cursor:pointer;padding:0;color:inherit;touch-action:manipulation}
+.srv-icon:hover,.srv-icon:focus-visible{border-color:#00aaff;box-shadow:0 0 12px #00aaff44;outline:none}
 /* top-right buttons */
 .tb-right{margin-left:auto;display:flex;gap:6px}
 .tb-btn{background:#0b1829;border:1px solid #1a3a5c;color:#5a8aaa;width:48px;height:44px;border-radius:7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;transition:.15s}
@@ -147,7 +156,9 @@ body:not(.game-ready) #app{opacity:0;pointer-events:none}
 /* ─── MAP ─── */
 #mapwrap{flex:1;display:flex;flex-direction:column;position:relative;background:#05111c;overflow:hidden}
 #canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#canvas{display:block;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #mobile-panel-tabs{display:none}
+.mobile-panel-back{display:none}
 #player-badge{
   display:none;
   flex-direction:column;
@@ -194,6 +205,7 @@ body:not(.game-ready) #app{opacity:0;pointer-events:none}
   backdrop-filter:blur(6px);
 }
 .pkt-bar-title{font-size:9px;color:#5a8aaa;letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:6px;text-transform:uppercase}
+.pkt-bar-title small{display:none}
 .pkt-row{display:flex;gap:8px}
 .pkt-card{
   background:#060f1a;border:1px solid #142030;
@@ -1093,7 +1105,26 @@ body.log-focus #conn-log-sec .clog-scroll{
   }
 }
 
+@media (max-width: 900px) and (orientation: portrait) and (pointer: coarse){
+  body.mobile-portrait-lock{overflow:hidden}
+  body.mobile-portrait-lock #app{visibility:hidden;pointer-events:none}
+  body.mobile-portrait-lock #orientation-lock{
+    position:fixed;inset:0;z-index:3000;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;background:#030d18;
+    color:#c8e0f4;
+  }
+}
+
 @media (max-width: 620px) and (orientation: portrait){
+  body.mobile-portrait-lock{overflow:hidden}
+  body.mobile-portrait-lock #app{visibility:hidden;pointer-events:none}
+  body.mobile-portrait-lock #orientation-lock{
+    position:fixed;inset:0;z-index:3000;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;background:#030d18;
+    color:#c8e0f4;
+  }
   #main{
     position:relative;
     overflow:hidden;
@@ -1110,6 +1141,25 @@ body.log-focus #conn-log-sec .clog-scroll{
     overflow:hidden;
     box-shadow:0 0 28px #0009;
     transition:transform .18s ease;
+  }
+  #left > .mobile-panel-back,
+  #right > .mobile-panel-back{
+    display:flex;
+    position:absolute;
+    top:8px;
+    right:8px;
+    z-index:3;
+    width:40px;
+    height:40px;
+    align-items:center;
+    justify-content:center;
+    background:#071829ee;
+    border:1px solid #1a4a7a;
+    border-radius:7px;
+    color:#8ac8ff;
+    font:700 24px/1 'Share Tech Mono',monospace;
+    cursor:pointer;
+    touch-action:manipulation;
   }
   #left{
     left:0;
@@ -1140,7 +1190,9 @@ body.log-focus #conn-log-sec .clog-scroll{
     border:1px solid #1a4a7a;
     color:#8ac8ff;
     border-radius:6px;
-    padding:6px 8px;
+    min-width:72px;
+    min-height:40px;
+    padding:8px 10px;
     font-family:'Share Tech Mono',monospace;
     font-size:9px;
     letter-spacing:1px;
@@ -1148,7 +1200,8 @@ body.log-focus #conn-log-sec .clog-scroll{
     backdrop-filter:blur(4px);
   }
   body.mobile-left-open #mobile-panel-tabs button:first-child,
-  body.mobile-right-open #mobile-panel-tabs button:last-child{
+  body.mobile-right-open #mobile-panel-tabs button:nth-child(2),
+  body.mobile-towers-open #mobile-panel-tabs button:last-child{
     border-color:#00aaff;
     color:#fff;
     box-shadow:0 0 12px #00aaff33;
@@ -1158,7 +1211,28 @@ body.log-focus #conn-log-sec .clog-scroll{
     max-width:72%;
   }
   #pkt-bar{
-    max-height:50dvh;
+    max-height:44dvh;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  #pkt-bar .tower-grid{
+    min-width:0;
+  }
+  #pkt-bar .act{
+    min-height:48px;
+    font-size:10px;
+  }
+  #pkt-bar .act-row{
+    gap:5px;
+  }
+  #pkt-bar .tcard{
+    min-height:72px;
+    touch-action:manipulation;
+  }
+  #pkt-bar .copy-btn,
+  #pkt-bar .trow{
+    min-height:40px;
   }
 }
 
@@ -1174,6 +1248,13 @@ body.log-focus #conn-log-sec .clog-scroll{
     flex-wrap:nowrap;
     padding:4px 6px;
     gap:4px;
+  }
+  #topbar .srv-icon{
+    display:flex;
+    width:34px;
+    height:30px;
+    margin-left:4px;
+    font-size:18px;
   }
   .logo-wrap{
     width:98px;
@@ -1501,6 +1582,25 @@ body.log-focus #conn-log-sec .clog-scroll{
     width:178px;
     transform:translateX(102%);
   }
+  #left > .mobile-panel-back,
+  #right > .mobile-panel-back{
+    display:flex;
+    position:absolute;
+    top:6px;
+    right:6px;
+    z-index:3;
+    width:36px;
+    height:36px;
+    align-items:center;
+    justify-content:center;
+    background:#071829ee;
+    border:1px solid #1a4a7a;
+    border-radius:6px;
+    color:#8ac8ff;
+    font:700 22px/1 'Share Tech Mono',monospace;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
   body.mobile-left-open #left,
   body.mobile-right-open #right{
     transform:translateX(0);
@@ -1530,7 +1630,8 @@ body.log-focus #conn-log-sec .clog-scroll{
     backdrop-filter:blur(4px);
   }
   body.mobile-left-open #mobile-panel-tabs button:first-child,
-  body.mobile-right-open #mobile-panel-tabs button:last-child{
+  body.mobile-right-open #mobile-panel-tabs button:nth-child(2),
+  body.mobile-towers-open #mobile-panel-tabs button:last-child{
     border-color:#00aaff;
     color:#fff;
     box-shadow:0 0 12px #00aaff33;
@@ -1664,10 +1765,18 @@ body.log-focus #conn-log-sec .clog-scroll{
   #mobile-panel-tabs{
     top:32px;
   }
+  #mobile-panel-tabs button{
+    min-width:72px;
+    min-height:40px;
+    padding:8px 10px;
+  }
   #pkt-bar{
-    max-height:46dvh;
+    max-height:44dvh;
     padding:5px 6px 6px;
     gap:5px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
   }
   #pkt-bar .pkt-bar-title{
     display:none;
@@ -1675,6 +1784,10 @@ body.log-focus #conn-log-sec .clog-scroll{
   .tower-grid{
     grid-template-columns:1.25fr .95fr;
     gap:5px;
+  }
+  .tower-grid > .tower-sec:nth-child(3),
+  .tower-grid > .tower-sec:nth-child(4){
+    grid-column:1 / -1;
   }
   .tower-sec{
     border-radius:6px;
@@ -1755,9 +1868,9 @@ body.log-focus #conn-log-sec .clog-scroll{
     grid-template-columns:repeat(3,1fr);
   }
   .tower-sec .act{
-    min-height:32px;
-    padding:4px 2px;
-    font-size:7px;
+    min-height:44px;
+    padding:6px 2px;
+    font-size:8px;
     letter-spacing:0;
   }
   .tower-sec .act-coin{
@@ -1767,7 +1880,8 @@ body.log-focus #conn-log-sec .clog-scroll{
     max-height:58px;
   }
   .trow{
-    padding:3px 4px;
+    min-height:40px;
+    padding:5px 4px;
     gap:3px;
   }
   .trow-icon{
@@ -1791,10 +1905,138 @@ body.log-focus #conn-log-sec .clog-scroll{
     height:calc(100dvh - 40px);
   }
   #pkt-bar{
-    max-height:39%;
+    height:calc(100dvh - 40px);
+    max-height:calc(100dvh - 40px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    transform:translateY(100%);
+    transition:transform .2s ease;
+    z-index:35;
+    pointer-events:none;
+    background:linear-gradient(180deg,#0b1929 0%,#06101b 100%);
+    border:1px solid #1a4a7a;
+    border-bottom:0;
+    border-radius:16px 16px 0 0;
+    box-shadow:0 -12px 34px #000b;
+    padding:8px 8px 12px;
+  }
+  #mobile-panel-tabs{
+    top:8px;
+    left:10px;
+    right:auto;
+    width:max-content;
+    z-index:60;
+    display:flex;
+    gap:6px;
+    padding:0;
+    background:transparent;
+    border:0;
+    border-radius:10px;
+    box-shadow:none;
+    backdrop-filter:none;
+  }
+  #mobile-panel-tabs button{
+    flex:0 0 auto;
+    min-width:0;
+    min-width:150px;
+    min-height:40px;
+    padding:8px 6px;
+    background:#0b1e32;
+    border:1px solid #1a3a5c;
+    border-radius:7px;
+    color:#8aaabb;
+    font:700 10px/1 'Rajdhani',sans-serif;
+    letter-spacing:.8px;
+    touch-action:manipulation;
+  }
+  #mobile-panel-tabs button{
+    color:#fff;
+    border-color:#00aaff;
+    background:linear-gradient(180deg,#0c3555,#08223a);
+  }
+  body.mobile-towers-open #mobile-panel-tabs button{
+    color:#fff;
+    border-color:#00ff80;
+    box-shadow:0 0 12px #00ff8033;
+  }
+  #mobile-panel-tabs button{
+    min-width:72px;
+    min-height:40px;
+    padding:8px 10px;
+    touch-action:manipulation;
+  }
+  #pkt-bar .act{
+    min-height:44px;
+    padding:6px 3px;
+    touch-action:manipulation;
+  }
+  #pkt-bar .pkt-bar-title{
+    display:block;
+    position:sticky;
+    top:-8px;
+    z-index:2;
+    min-height:36px;
+    padding:8px 8px;
+    color:#c8e0f4;
+    background:#0b1929f5;
+    border-bottom:1px solid #1a3a5c;
+    font:700 11px/1 'Orbitron',monospace;
+    letter-spacing:1.5px;
+    cursor:default;
+  }
+  #pkt-bar .pkt-bar-title small{
+    display:block;
+    margin-top:5px;
+    color:#5a8aaa;
+    font:400 10px/1.2 'Rajdhani',sans-serif;
+    letter-spacing:.2px;
+  }
+  #pkt-bar .pkt-bar-title .mobile-panel-back{
+    display:flex;
+    float:right;
+    width:34px;
+    height:30px;
+    margin-top:-5px;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    border:0;
+    color:#8ac8ff;
+    font:700 22px/1 'Share Tech Mono',monospace;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  body.mobile-towers-open #pkt-bar,
+  #pkt-bar.mobile-towers-open{
+    transform:translateY(0) !important;
+    pointer-events:auto;
+  }
+  body.mobile-towers-open #phase-banner,
+  body.mobile-towers-open #map-notifs{
+    display:none;
   }
   .tower-grid{
-    grid-template-columns:1.35fr .95fr .72fr .85fr;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+  }
+  .tower-grid > .tower-sec:nth-child(3),
+  .tower-grid > .tower-sec:nth-child(4){
+    grid-column:1 / -1;
+  }
+  .tower-grid > .tower-sec:nth-child(4){
+    display:none !important;
+  }
+  .tower-sec{
+    background:#081522;
+    border-color:#163b5a;
+    border-radius:9px;
+  }
+  .tower-grid > .tower-sec:nth-child(3){
+    position:sticky;
+    bottom:0;
+    z-index:3;
+    box-shadow:0 -8px 16px #06101bdd;
   }
   .tower-sec .tcard-row,
   .tower-sec .tcard-row.secondary{
@@ -1807,4 +2049,23 @@ body.log-focus #conn-log-sec .clog-scroll{
   .tower-sec .tlist-scroll{
     max-height:54px;
   }
+}
+
+/* ─── MOBILE TAB ACTIVE STATE (authoritative — wins over every older body-class/nth-child rule above) ─── */
+#mobile-panel-tabs button{
+  border-color:#1a4a7a !important;
+  color:#8ac8ff !important;
+  background:#071829dd !important;
+  box-shadow:none !important;
+}
+#mobile-panel-tabs button.active{
+  border-color:#00ff80 !important;
+  color:#fff !important;
+  box-shadow:0 0 12px #00ff8033 !important;
+  background:linear-gradient(180deg,#0c3020,#082014) !important;
+}
+
+/* prevent pull-to-refresh / rubber-band scroll from fighting canvas drag on mobile browsers */
+html,body{
+  overscroll-behavior:contain;
 }

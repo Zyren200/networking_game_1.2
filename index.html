@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>TowerNet: Packet-Protocol</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -50,7 +50,7 @@
     <div class="hp-row">
       <span class="hp-pct" id="tb-hppct">100%</span>
       <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpfill" style="width:100%"></div></div>
-      <div class="srv-icon">🖥️</div>
+      <button class="srv-icon" id="serverQuickBtn" type="button" onclick="toggleMobilePanel('right')" aria-label="Open server panel">🖥️</button>
     </div>
   </div>
   <div class="tb-right">
@@ -65,6 +65,7 @@
 
 <!-- LEFT / ENEMY PACKETS -->
 <div id="left">
+  <button class="mobile-panel-back" type="button" onclick="closeMobilePanels()" aria-label="Close packets panel">&gt;</button>
   <div class="p-sec" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
     <div class="p-title">INCOMING PACKETS (ENEMY)</div>
     <div class="enemy-note">Threat roster currently visible on the network.</div>
@@ -125,9 +126,10 @@
 <!-- ── MAP ── -->
 <div id="mapwrap">
   <canvas id="canvas"></canvas>
-  <div id="mobile-panel-tabs" aria-label="Mobile panels">
-    <button type="button" onclick="toggleMobilePanel('left')">PACKETS</button>
-    <button type="button" onclick="toggleMobilePanel('right')">SERVER</button>
+  <div id="mobile-panel-tabs" aria-label="Game controls">
+    <button type="button" data-panel="left" onclick="toggleMobilePanel('left')" aria-label="Open incoming packets panel">📡 PACKETS</button>
+    <button type="button" data-panel="right" onclick="toggleMobilePanel('right')" aria-label="Open server panel">🖥️ SERVER</button>
+    <button type="button" data-panel="towers" onclick="toggleMobilePanel('towers')" aria-label="Open tower menu">☰ TOWERS</button>
   </div>
   <div id="phase-banner">PREP PHASE</div>
   <div id="map-notifs"></div>
@@ -139,7 +141,7 @@
 
 <!-- TOWER PANEL BAR -->
 <div id="pkt-bar">
-  <div class="pkt-bar-title">TOWER PANEL</div>
+  <div class="pkt-bar-title"><span>TOWER MENU</span><small>Choose a tower, tap PLACE, then tap the map.</small><button class="mobile-panel-back" type="button" onclick="closeMobilePanels()" aria-label="Close tower menu">&gt;</button></div>
   <div class="tower-grid">
   <div class="p-sec tower-sec">
       <div class="p-title">TOWER PANEL</div>
@@ -230,7 +232,7 @@
         <button class="act act-sell" id="sell-btn" onclick="sellTower()">💰 SELL<div class="act-coin" id="sell-value">--</div></button>
       </div>
       <div class="act-row">
-        <button class="act act-fix" id="fixServerBtn" onclick="buyFixServer()">🔧 FIX SERVER<div class="act-coin" id="fix-cost">500</div></button>
+        <button class="act act-fix" id="fixServerBtn" onclick="buyFixServer()" disabled>🔧 FIX SERVER<div class="act-coin" id="fix-cost">500</div></button>
       </div>
     </div>
 
@@ -244,6 +246,7 @@
 
 <!-- ── RIGHT ── -->
 <div id="right">
+  <button class="mobile-panel-back" type="button" onclick="closeMobilePanels()" aria-label="Close server panel">&gt;</button>
   <div class="sp-header">
     <div class="sp-htitle">SERVER PANEL</div>
     <div class="ctt-label">CONNECT TO TOWER</div>
@@ -270,6 +273,15 @@
   </div>
 </div>
 </div>
+</div>
+
+<div id="orientation-lock" role="status" aria-live="polite">
+  <div class="orientation-lock-box">
+    <div class="orientation-warning" aria-hidden="true">⚠️</div>
+    <div class="orientation-phone" aria-hidden="true">📱 <span>↻</span></div>
+    <div class="orientation-title">LANDSCAPE REQUIRED</div>
+    <div class="orientation-copy">Rotate your device sideways to play TowerNet.</div>
+  </div>
 </div>
 
 <!-- OVERLAY -->

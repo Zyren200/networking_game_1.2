@@ -418,10 +418,57 @@ function toggleLogFocus(){
   }
 }
 
+function syncMobileTabs(){
+  const openMap={
+    left:document.body.classList.contains('mobile-left-open'),
+    right:document.body.classList.contains('mobile-right-open'),
+    towers:document.body.classList.contains('mobile-towers-open')
+  };
+  document.querySelectorAll('#mobile-panel-tabs button[data-panel]').forEach(btn=>{
+    btn.classList.toggle('active',!!openMap[btn.dataset.panel]);
+    btn.setAttribute('aria-pressed',openMap[btn.dataset.panel]?'true':'false');
+  });
+}
+
 function toggleMobilePanel(side){
+  if(side==='towers'){
+    document.body.classList.remove('mobile-left-open','mobile-right-open');
+    const panel=document.getElementById('pkt-bar');
+    const open=!document.body.classList.contains('mobile-towers-open');
+    document.body.classList.toggle('mobile-towers-open',open);
+    if(panel){
+      panel.classList.toggle('mobile-towers-open',open);
+      if(open)panel.style.setProperty('transform','translateY(0)','important');
+      else panel.style.removeProperty('transform');
+    }
+    syncMobileTabs();
+    return;
+  }
   const left=side==='left';
+  document.body.classList.remove('mobile-towers-open');
+  const towerPanel=document.getElementById('pkt-bar');
+  if(towerPanel){
+    towerPanel.classList.remove('mobile-towers-open');
+    towerPanel.style.removeProperty('transform');
+  }
   document.body.classList.toggle('mobile-left-open',left&&!document.body.classList.contains('mobile-left-open'));
   document.body.classList.toggle('mobile-right-open',!left&&!document.body.classList.contains('mobile-right-open'));
+  syncMobileTabs();
+}
+
+function closeMobilePanels(){
+  document.body.classList.remove('mobile-left-open','mobile-right-open','mobile-towers-open');
+  const panel=document.getElementById('pkt-bar');
+  if(panel){
+    panel.classList.remove('mobile-towers-open');
+    panel.style.removeProperty('transform');
+  }
+  syncMobileTabs();
+}
+
+function syncOrientationLock(){
+  const mobilePortrait=window.matchMedia('(orientation: portrait) and (max-width: 900px) and (pointer: coarse)').matches;
+  document.body.classList.toggle('mobile-portrait-lock',mobilePortrait);
 }
 
 function setPaused(next,force=false){
@@ -498,7 +545,8 @@ syncTowerLocks();
 
 function resize(){
   // account for pkt-bar height (~115px)
-  const barH=document.getElementById('pkt-bar').offsetHeight;
+  const mobileDrawer=window.matchMedia('(max-width: 700px) and (orientation: landscape)').matches;
+  const barH=mobileDrawer?0:document.getElementById('pkt-bar').offsetHeight;
   canvas.width=mw.clientWidth;
   canvas.height=mw.clientHeight;
   makePath(barH);
@@ -544,6 +592,7 @@ function activatePlace(){
   if(gamePaused){mn('Game paused. Resume to place towers.','dmg');return;}
   if(S.towers.length>=MAX_TOWERS){mn(`Tower limit reached (${MAX_TOWERS}/${MAX_TOWERS}).`,'dmg');return;}
   if(S.coins<d.cost){mn('Not enough coins!','dmg');return;}
+  closeMobilePanels();
   S.placing=true;
   document.getElementById('phase-banner').textContent='CLICK MAP TO PLACE '+d.lbl;
 }
@@ -715,6 +764,7 @@ canvas.addEventListener('pointermove',e=>{
 canvas.addEventListener('pointerdown',e=>{
   if(!S||S.over||gamePaused)return;
   e.preventDefault();
+  if(e.pointerId!==undefined&&canvas.setPointerCapture)canvas.setPointerCapture(e.pointerId);
   const {x,y}=canvasPoint(e);
   updateCanvasHover(x,y);
   if(S.hover){S.selTower=S.hover;refreshSel(S.hover);return;}
@@ -1247,11 +1297,14 @@ function startGame(){
   lastTs=null;raf=requestAnimationFrame(loop);
   addSN('grn','🟢','System Online','TowerNet initialized');
 }
-window.addEventListener('resize',()=>{if(S){const b=document.getElementById('pkt-bar').offsetHeight;canvas.width=mw.clientWidth;canvas.height=mw.clientHeight;makePath(b);}});
+window.addEventListener('resize',()=>{if(S)resize();});
 window.selType=selType;window.activatePlace=activatePlace;window.doConnect=doConnect;
-window.copyIP=copyIP;window.upgradeTower=upgradeTower;window.sellTower=sellTower;window.startGame=startGame;window.doNextWave=doNextWave;window.togglePause=togglePause;window.toggleMobilePanel=toggleMobilePanel;
+window.copyIP=copyIP;window.upgradeTower=upgradeTower;window.sellTower=sellTower;window.startGame=startGame;window.doNextWave=doNextWave;window.togglePause=togglePause;window.toggleMobilePanel=toggleMobilePanel;window.closeMobilePanels=closeMobilePanels;
 window.toggleMenu=toggleMenu;window.toggleLogFocus=toggleLogFocus;window.restartGame=restartGame;window.resumeFromMenu=resumeFromMenu;window.closeMenu=closeMenu;
 window.openHowToPlay=openHowToPlay;window.closeHowToPlay=closeHowToPlay;window.showHowToPlay=openHowToPlay;
 wireTopbarActions();
 renderEnemyRoster();
 renderLoginOverlay(safeGetStoredName());
+syncOrientationLock();
+window.addEventListener('resize',syncOrientationLock,{passive:true});
+window.matchMedia('(orientation: portrait)').addEventListener?.('change',syncOrientationLock);
