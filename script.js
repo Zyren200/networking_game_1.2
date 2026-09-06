@@ -1254,11 +1254,25 @@ function endGame(win){
   ov.style.display='flex';
 }
 
+async function enterGameFullscreen(){
+  try{
+    if(!document.fullscreenElement&&document.documentElement.requestFullscreen){
+      await document.documentElement.requestFullscreen({navigationUI:'hide'});
+    }
+    if(screen.orientation?.lock){
+      await screen.orientation.lock('landscape').catch(()=>{});
+    }
+  }catch(_err){
+    // Mobile browsers may require fullscreen to be enabled in their site settings.
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 //  INIT
 // ═════════════════════════════════════════════════════════════════════════════
 function startGame(){
   closeMenu(false);
+  enterGameFullscreen();
   logFocus=false;
   syncLogFocus();
   const input=document.getElementById('usernameInput');
