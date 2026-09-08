@@ -303,6 +303,24 @@
   </div>
 </div>
 
+<!-- TUTORIAL COACH-MARK OVERLAY -->
+<div id="tutorial-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+  <div id="tutorial-spotlight"></div>
+  <div id="tutorial-tooltip">
+    <div class="tt-step" id="tutorial-stepcount">STEP 1/10</div>
+    <div class="tt-title" id="tutorial-title">Welcome</div>
+    <div class="tt-text" id="tutorial-text"></div>
+    <div class="tt-hint" id="tutorial-hint"></div>
+    <div class="tt-actions">
+      <button class="tt-skip" type="button" onclick="skipTutorial()">SKIP</button>
+      <div class="tt-nav">
+          <button class="tt-back" type="button" id="tutorial-back-btn" onclick="tutorialBack()">BACK</button>
+          <button class="tt-next" type="button" id="tutorial-next-btn" onclick="tutorialNext()">NEXT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="script.js"></script>
 </body>
 </html>

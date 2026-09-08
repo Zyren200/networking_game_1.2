@@ -48,6 +48,7 @@ const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
 const mw=document.getElementById('mapwrap');
 let S,raf,lastTs,pacAnims=[],ipSeq=10,gamePaused=false,menuOpen=false,menuPausedBeforeOpen=false,logFocus=false,playerName='';
+let lastCanvasTouch=0;
 const PLAYER_STORAGE_KEY='towernet.nickname';
 
 function fresh(){
@@ -132,7 +133,7 @@ function bindLoginOverlay(){
   input.addEventListener('keydown',e=>{
     if(e.key==='Enter'){
       e.preventDefault();
-      startGame();
+      proceedFromLogin();
     }
   });
 }
@@ -170,7 +171,7 @@ function renderLoginOverlay(prefill=''){
         </div>
         <div class="login-error" id="usernameError" aria-live="polite"></div>
         <div class="login-actions">
-          <button class="ov-btn login-btn" type="button" onclick="startGame()">ENTER SYSTEM</button>
+          <button class="ov-btn login-btn" type="button" onclick="proceedFromLogin()">ENTER SYSTEM</button>
           <div class="login-tip">Press Enter to continue. 2-18 characters keeps the name neat in-game.</div>
         </div>
       </div>
@@ -187,6 +188,70 @@ function renderLoginOverlay(prefill=''){
   bindLoginOverlay();
   syncPlayerBadge();
   updateLoginPreview();
+}
+
+const SKILL_PREF_KEY='towernet.skilllevel';
+let pendingTutorial=false;
+
+function safeGetSkillPref(){
+  try{return localStorage.getItem(SKILL_PREF_KEY)||'';}catch(_err){return '';}
+}
+function safeSetSkillPref(v){
+  try{localStorage.setItem(SKILL_PREF_KEY,v);}catch(_err){}
+}
+
+function proceedFromLogin(){
+  const input=document.getElementById('usernameInput');
+  const err=document.getElementById('usernameError');
+  const nextName=normalizeNickname(input?input.value:playerName||safeGetStoredName());
+  if(nextName.length<2){
+    if(err)err.textContent='Kailangan ng nickname na 2 characters pataas.';
+    if(input){
+      input.focus({preventScroll:true});
+      input.select();
+    }
+    return;
+  }
+  playerName=nextName;
+  safeSetStoredName(playerName);
+  if(err)err.textContent='';
+  renderSkillCheckOverlay();
+}
+
+function renderSkillCheckOverlay(){
+  const ov=document.getElementById('overlay');
+  if(!ov)return;
+  const pref=safeGetSkillPref();
+  ov.setAttribute('role','dialog');
+  ov.setAttribute('aria-modal','true');
+  ov.setAttribute('aria-labelledby','skill-title');
+  ov.innerHTML=`
+    <div class="ov-box skill-box">
+      <div class="login-kicker">OPERATOR PROFILE — ${escapeHtml(displayNickname(playerName))}</div>
+      <div class="ov-logo" id="skill-title">ARE YOU FAMILIAR WITH NETWORKING?</div>
+      <div class="login-copy">Before we begin: are you new to networking or this type of game? We can guide you step by step if you need it.</div>
+      <div class="skill-choice-row">
+        <button class="skill-choice-btn${pref==='beginner'?' recommended':''}" type="button" onclick="chooseSkillLevel(true)">
+          <span class="scb-icon">🧭</span>
+          <span class="scb-title">BEGINNER</span>
+          <span class="scb-sub">I am new — guide me step by step</span>
+        </button>
+        <button class="skill-choice-btn${pref==='experienced'?' recommended':''}" type="button" onclick="chooseSkillLevel(false)">
+          <span class="scb-icon">⚡</span>
+          <span class="scb-title">EXPERIENCED</span>
+          <span class="scb-sub">I know the OSI layers — take me to the game</span>
+        </button>
+      </div>
+      <div class="login-tip skill-note">You can still open the tutorial anytime from the MENU, whichever option you choose.</div>
+      <button class="skill-back-link" type="button" onclick="renderLoginOverlay(playerName)">&larr; Change nickname</button>
+    </div>`;
+  ov.style.display='flex';
+}
+
+function chooseSkillLevel(isBeginner){
+  safeSetSkillPref(isBeginner?'beginner':'experienced');
+  pendingTutorial=isBeginner;
+  startGame();
 }
 
 function syncPauseButton(){
@@ -227,6 +292,7 @@ function ensureMenuOverlay(){
       <div class="menu-actions">
         <button class="ov-btn menu-btn" type="button" onclick="resumeFromMenu()">RESUME</button>
         <button class="ov-btn menu-btn" type="button" onclick="openHowToPlay()">HOW TO PLAY</button>
+        <button class="ov-btn menu-btn" type="button" onclick="startTutorialFromMenu()">🎓 SHOW TUTORIAL</button>
         <button class="ov-btn menu-btn" type="button" onclick="restartGame()">REBOOT SYSTEM</button>
         <button class="ov-btn menu-btn" type="button" onclick="toggleLogFocus()">TOGGLE LOG FOCUS</button>
         <button class="ov-btn menu-btn menu-btn-ghost" type="button" onclick="closeMenu()">CLOSE</button>
@@ -348,6 +414,218 @@ function openHowToPlay(){
 function closeHowToPlay(){
   document.body.classList.remove('howto-open');
   syncHowToPlayOverlay();
+}
+
+// ══════════════════════════════════════════
+//  BEGINNER TUTORIAL (guided coach-marks)
+// ══════════════════════════════════════════
+const TUTORIAL_STEPS=[
+  {
+    title:'Welcome, Operator!',
+    text:'This is <b>TowerNet</b> — a tower defense game based on the 7 layers of the OSI Network Model. Each incoming <b>packet</b> represents a network layer, and each <b>tower</b> defends a specific layer. I will guide you step by step. Ready?',
+    target:null,wide:true
+  },
+  {
+    title:'Wave and Prep Time',
+    text:'Before incoming packets arrive, you have <b>Prep Time</b> to prepare your towers. There are 10 waves in total, and each wave becomes stronger.',
+    target:'.timer-wrap'
+  },
+  {
+    title:'Incoming Packets',
+    text:'This is where you can see the incoming <b>packets</b> for the current wave. Each packet has its own OSI Layer (1–7), HP, and speed. Remember their layers — they will matter later.',
+    target:'#left',mobilePanel:'left'
+  },
+  {
+    title:'Choose a Tower',
+    text:'These are your <b>towers</b>. Each tower defends a specific OSI Layer (for example, Cable Shield = Layer 1). When a tower layer matches a packet layer, it deals more damage.',
+    target:'.tcard-row',mobilePanel:'towers'
+  },
+  {
+    title:'Place Your First Tower',
+    text:'Try it now! Tap <b>PLACE TOWER</b>, then tap an open area of the map. Do not place it on the packet path.',
+    target:'.act-place',mobilePanel:'towers',
+    gate:'towerPlaced',hint:'Place a tower to continue...'
+  },
+  {
+    title:'The Tower IP Address',
+    text:'Every tower you place has its own <b>IP Address</b>, which you can copy. Notice that it is still <b>OFFLINE</b> — you must connect it before it can help defend your server.',
+    target:'.ip-copy-row',mobilePanel:'towers'
+  },
+  {
+    title:'Connect the Tower',
+    text:'Open the <b>Server Panel</b>, type or paste the tower IP into the field, then press <b>CONNECT</b>. When successful, the tower will go ONLINE and start attacking packets.',
+    target:'.sp-header',mobilePanel:'right',
+    gate:'towerConnected',hint:'Connect the tower to continue...'
+  },
+  {
+    title:'Fix Server',
+    text:'When <b>Server Integrity</b> drops, you can use <b>FIX SERVER</b> to restore it. It costs coins and has limited uses, so spend it wisely.',
+    target:'#fixServerBtn',mobilePanel:'towers'
+  },
+  {
+    title:'Pause Anytime',
+    text:'You can <b>PAUSE</b> the game anytime to think about your strategy. The MENU includes <b>HOW TO PLAY</b> and an option to replay this tutorial whenever you need it.',
+    target:'.tb-right'
+  },
+  {
+    title:'You Are Ready, Operator!',
+    text:'Those are the basics. Remember: <b>match the layers</b> for bonus damage, keep your towers <b>ONLINE</b>, and monitor <b>Server Integrity</b>. Good luck defending the network!',
+    target:null,wide:true
+  }
+];
+
+let tutorialActive=false,tutorialIdx=0,tutorialStepDone=false,tutorialResizeBound=false;
+
+function tEl(id){return document.getElementById(id);}
+
+function isMobileDrawerMode(){
+  const tabs=document.getElementById('mobile-panel-tabs');
+  return !!tabs&&getComputedStyle(tabs).display!=='none';
+}
+
+function beginTutorial(){
+  if(!S||S.over)return;
+  closeMenu(false);
+  closeMobilePanels();
+  tutorialActive=true;
+  tutorialIdx=0;
+  tutorialStepDone=false;
+  setPaused(true,true);
+  const overlay=tEl('tutorial-overlay');
+  if(overlay)overlay.classList.remove('hidden');
+  if(!tutorialResizeBound){
+    window.addEventListener('resize',onTutorialResize);
+    tutorialResizeBound=true;
+  }
+  document.addEventListener('tn:towerPlaced',onTutorialTowerPlaced);
+  document.addEventListener('tn:towerConnected',onTutorialTowerConnected);
+  renderTutorialStep();
+}
+
+function onTutorialResize(){
+  if(!tutorialActive)return;
+  positionCurrentTutorialStep();
+}
+function onTutorialTowerPlaced(){
+  const step=TUTORIAL_STEPS[tutorialIdx];
+  if(tutorialActive&&step&&step.gate==='towerPlaced'&&!tutorialStepDone){
+    document.body.classList.remove('tutorial-placement-focus');
+    tutorialStepDone=true;
+    markTutorialStepComplete();
+  }
+}
+function onTutorialTowerConnected(){
+  const step=TUTORIAL_STEPS[tutorialIdx];
+  if(tutorialActive&&step&&step.gate==='towerConnected'&&!tutorialStepDone){
+    tutorialStepDone=true;
+    markTutorialStepComplete();
+  }
+}
+function markTutorialStepComplete(){
+  const hintEl=tEl('tutorial-hint');
+  if(hintEl){
+    hintEl.textContent='✅ Great job! Continuing...';
+    hintEl.classList.add('tt-hint-ok');
+  }
+  const nextBtn=tEl('tutorial-next-btn');
+  if(nextBtn)nextBtn.disabled=false;
+  setTimeout(()=>{if(tutorialActive)tutorialNext();},1000);
+}
+
+function renderTutorialStep(){
+  const step=TUTORIAL_STEPS[tutorialIdx];
+  if(!step){endTutorial();return;}
+  tutorialStepDone=false;
+  const overlay=tEl('tutorial-overlay');
+  const tip=tEl('tutorial-tooltip');
+  if(!overlay||!tip)return;
+  overlay.classList.toggle('tt-modal',!step.target);
+  tip.classList.toggle('tt-wide',!!step.wide);
+  tEl('tutorial-stepcount').textContent=`STEP ${tutorialIdx+1}/${TUTORIAL_STEPS.length}`;
+  tEl('tutorial-title').textContent=step.title;
+  tEl('tutorial-text').innerHTML=step.text;
+  const hintEl=tEl('tutorial-hint');
+  hintEl.classList.remove('tt-hint-ok');
+  hintEl.textContent=step.gate?(step.hint||'Complete this step to continue...'):'';
+  const backBtn=tEl('tutorial-back-btn');
+  backBtn.style.visibility=tutorialIdx===0?'hidden':'visible';
+  const nextBtn=tEl('tutorial-next-btn');
+  nextBtn.textContent=tutorialIdx===TUTORIAL_STEPS.length-1?'FINISH':'NEXT';
+  nextBtn.disabled=!!step.gate;
+
+  const mobileMode=isMobileDrawerMode();
+  if(mobileMode){
+    closeMobilePanels();
+    if(step.mobilePanel)toggleMobilePanel(step.mobilePanel);
+  }
+  setTimeout(positionCurrentTutorialStep,mobileMode?240:20);
+}
+
+function positionCurrentTutorialStep(){
+  const step=TUTORIAL_STEPS[tutorialIdx];
+  if(!step)return;
+  const placementFocus=document.body.classList.contains('tutorial-placement-focus');
+  const targetEl=placementFocus?document.getElementById('canvas'):(step.target?document.querySelector(step.target):null);
+  positionTutorialUI(targetEl);
+}
+
+function positionTutorialUI(targetEl){
+  const spot=tEl('tutorial-spotlight');
+  const tip=tEl('tutorial-tooltip');
+  if(!spot||!tip)return;
+  if(!targetEl){
+    spot.style.display='none';
+    tip.style.left='50%';tip.style.top='50%';tip.style.transform='translate(-50%,-50%)';
+    return;
+  }
+  const r=targetEl.getBoundingClientRect();
+  const pad=8;
+  spot.style.display='block';
+  spot.style.left=Math.max(4,r.left-pad)+'px';
+  spot.style.top=Math.max(4,r.top-pad)+'px';
+  spot.style.width=(r.width+pad*2)+'px';
+  spot.style.height=(r.height+pad*2)+'px';
+
+  const vw=window.innerWidth,vh=window.innerHeight;
+  tip.style.transform='none';
+  const tw=tip.offsetWidth||300,th=tip.offsetHeight||180;
+  let top=r.bottom+pad+14,above=false;
+  if(top+th>vh-10){top=r.top-pad-14-th;above=true;if(top<8)top=8;}
+  let left=r.left+r.width/2-tw/2;
+  left=Math.max(8,Math.min(left,vw-tw-8));
+  tip.style.left=left+'px';
+  tip.style.top=Math.max(8,top)+'px';
+  tip.classList.toggle('tt-above',above);
+}
+
+function tutorialNext(){
+  const step=TUTORIAL_STEPS[tutorialIdx];
+  if(step&&step.gate&&!tutorialStepDone)return;
+  if(tutorialIdx>=TUTORIAL_STEPS.length-1){endTutorial();return;}
+  tutorialIdx++;
+  renderTutorialStep();
+}
+function tutorialBack(){
+  if(tutorialIdx<=0)return;
+  tutorialIdx--;
+  renderTutorialStep();
+}
+function skipTutorial(){endTutorial();}
+
+function endTutorial(){
+  tutorialActive=false;
+  document.body.classList.remove('tutorial-placement-focus');
+  document.removeEventListener('tn:towerPlaced',onTutorialTowerPlaced);
+  document.removeEventListener('tn:towerConnected',onTutorialTowerConnected);
+  const overlay=tEl('tutorial-overlay');
+  if(overlay){overlay.classList.add('hidden');overlay.classList.remove('tt-modal');}
+  closeMobilePanels();
+  if(S&&!S.over)setPaused(false,true);
+}
+
+function startTutorialFromMenu(){
+  closeMenu(false);
+  beginTutorial();
 }
 
 function syncLogFocus(){
@@ -589,12 +867,16 @@ function activatePlace(){
     mn('🔒 Not unlocked!','dmg');
     return;
   }
-  if(gamePaused){mn('Game paused. Resume to place towers.','dmg');return;}
+  if(gamePaused&&!tutorialActive){mn('Game paused. Resume to place towers.','dmg');return;}
   if(S.towers.length>=MAX_TOWERS){mn(`Tower limit reached (${MAX_TOWERS}/${MAX_TOWERS}).`,'dmg');return;}
   if(S.coins<d.cost){mn('Not enough coins!','dmg');return;}
   closeMobilePanels();
   S.placing=true;
   document.getElementById('phase-banner').textContent='CLICK MAP TO PLACE '+d.lbl;
+  if(tutorialActive&&TUTORIAL_STEPS[tutorialIdx]?.gate==='towerPlaced'){
+    document.body.classList.add('tutorial-placement-focus');
+    positionTutorialUI(document.getElementById('canvas'));
+  }
 }
 
 const MAX_TOWER_LEVEL=3;
@@ -750,19 +1032,24 @@ function syncFixServerButton(){
 // ══════════════════════════════════════════
 function canvasPoint(e){
   const r=canvas.getBoundingClientRect();
-  return{x:e.clientX-r.left,y:e.clientY-r.top};
+  const touch=e.changedTouches?.[0]||e.touches?.[0];
+  const clientX=touch?touch.clientX:e.clientX;
+  const clientY=touch?touch.clientY:e.clientY;
+  return{x:clientX-r.left,y:clientY-r.top};
 }
 function updateCanvasHover(x,y){
   S.mx=x;S.my=y;
   S.hover=S.towers.find(t=>dst(t.x,t.y,x,y)<22)||null;
 }
 canvas.addEventListener('pointermove',e=>{
-  if(!S||S.over||gamePaused)return;
+  if(!S||S.over||(gamePaused&&!tutorialActive))return;
   const p=canvasPoint(e);
   updateCanvasHover(p.x,p.y);
 });
-canvas.addEventListener('pointerdown',e=>{
-  if(!S||S.over||gamePaused)return;
+function handleCanvasDown(e){
+  if(!S||S.over||(gamePaused&&!tutorialActive))return;
+  if(e.type==='touchstart')lastCanvasTouch=Date.now();
+  if(e.type==='pointerdown'&&Date.now()-lastCanvasTouch<500)return;
   e.preventDefault();
   if(e.pointerId!==undefined&&canvas.setPointerCapture)canvas.setPointerCapture(e.pointerId);
   const {x,y}=canvasPoint(e);
@@ -781,7 +1068,10 @@ canvas.addEventListener('pointerdown',e=>{
   refreshSel(t);refreshTList();updCoins();
   banner();
   addLog('info',ts(),'Tower '+d.lbl+' placed at '+t.ip);
-});
+  document.dispatchEvent(new CustomEvent('tn:towerPlaced',{detail:t}));
+}
+canvas.addEventListener('pointerdown',handleCanvasDown,{passive:false});
+canvas.addEventListener('touchstart',handleCanvasDown,{passive:false});
 
 // ══════════════════════════════════════════
 //  PATH HELPERS
@@ -802,7 +1092,7 @@ function dst(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by);}
 // ══════════════════════════════════════════
 //  CONNECT
 function doConnect(){
-  if(gamePaused){mn('Game paused. Resume to connect towers.','dmg');return;}
+  if(gamePaused&&!tutorialActive){mn('Game paused. Resume to connect towers.','dmg');return;}
   const v=document.getElementById('ip-input').value.trim();
   const t=S.towers.find(x=>x.ip===v);
   if(!t){
@@ -825,6 +1115,7 @@ function doConnect(){
       addLog('ok',ts(),'Connection Successful!',true);
       addLog('info',ts(),v+' is now ONLINE');
       addSN('grn','✅',t.def.lbl+' Online',v+' connected to server');
+      document.dispatchEvent(new CustomEvent('tn:towerConnected',{detail:t}));
     }
   });
   document.getElementById('ip-input').value='';
@@ -1178,6 +1469,10 @@ function loop(ts2){
   if(!lastTs)lastTs=ts2;
   const dt=Math.min((ts2-lastTs)/1000,.1);lastTs=ts2;
   if(gamePaused){
+    if(tutorialActive){
+      for(const a of pacAnims){a.p=Math.min(1,a.p+dt*1.4);if(a.p>=1){a.cb&&a.cb();a.done=true;}}
+      pacAnims=pacAnims.filter(a=>!a.done);
+    }
     draw();raf=requestAnimationFrame(loop);
     return;
   }
@@ -1275,20 +1570,10 @@ function startGame(){
   enterGameFullscreen();
   logFocus=false;
   syncLogFocus();
-  const input=document.getElementById('usernameInput');
-  const err=document.getElementById('usernameError');
-  const nextName=normalizeNickname(input?input.value:playerName||safeGetStoredName());
-  if(nextName.length<2){
-    if(err)err.textContent='Kailangan ng nickname na 2 characters pataas.';
-    if(input){
-      input.focus({preventScroll:true});
-      input.select();
-    }
-    return;
+  if(normalizeNickname(playerName).length<2){
+    playerName=normalizeNickname(safeGetStoredName())||'GUEST';
   }
-  playerName=nextName;
   safeSetStoredName(playerName);
-  if(err)err.textContent='';
   document.getElementById('overlay').style.display='none';
   document.getElementById('wave-done').style.display='none';
   document.getElementById('clog').innerHTML='';
@@ -1310,12 +1595,18 @@ function startGame(){
   if(raf)cancelAnimationFrame(raf);
   lastTs=null;raf=requestAnimationFrame(loop);
   addSN('grn','🟢','System Online','TowerNet initialized');
+  if(pendingTutorial){
+    pendingTutorial=false;
+    setTimeout(beginTutorial,350);
+  }
 }
 window.addEventListener('resize',()=>{if(S)resize();});
 window.selType=selType;window.activatePlace=activatePlace;window.doConnect=doConnect;
 window.copyIP=copyIP;window.upgradeTower=upgradeTower;window.sellTower=sellTower;window.startGame=startGame;window.doNextWave=doNextWave;window.togglePause=togglePause;window.toggleMobilePanel=toggleMobilePanel;window.closeMobilePanels=closeMobilePanels;
 window.toggleMenu=toggleMenu;window.toggleLogFocus=toggleLogFocus;window.restartGame=restartGame;window.resumeFromMenu=resumeFromMenu;window.closeMenu=closeMenu;
 window.openHowToPlay=openHowToPlay;window.closeHowToPlay=closeHowToPlay;window.showHowToPlay=openHowToPlay;
+window.proceedFromLogin=proceedFromLogin;window.chooseSkillLevel=chooseSkillLevel;
+window.tutorialNext=tutorialNext;window.tutorialBack=tutorialBack;window.skipTutorial=skipTutorial;window.startTutorialFromMenu=startTutorialFromMenu;
 wireTopbarActions();
 renderEnemyRoster();
 renderLoginOverlay(safeGetStoredName());
