@@ -161,7 +161,7 @@ function renderLoginOverlay(prefill=''){
       <div class="login-kicker">OPERATOR ACCESS</div>
       <div class="ov-logo" id="login-title">CREATE NICKNAME</div>
       <div class="ov-sub">ENTER SYSTEM</div>
-      <div class="login-copy">Bago pumasok sa tower defense, gumawa muna ng nickname para ma-display siya nang maayos sa game HUD.</div>
+      <div class="login-copy">Before entering the tower defense game, create a nickname to display on the game HUD.</div>
       <div class="login-form">
         <label class="login-label" for="usernameInput">NICKNAME</label>
         <input class="login-input" id="usernameInput" type="text" maxlength="18" autocomplete="nickname" spellcheck="false" placeholder="e.g. bytewolf">
@@ -205,7 +205,7 @@ function proceedFromLogin(){
   const err=document.getElementById('usernameError');
   const nextName=normalizeNickname(input?input.value:playerName||safeGetStoredName());
   if(nextName.length<2){
-    if(err)err.textContent='Kailangan ng nickname na 2 characters pataas.';
+    if(err)err.textContent='Your nickname must be at least 2 characters long.';
     if(input){
       input.focus({preventScroll:true});
       input.select();
@@ -289,6 +289,18 @@ function ensureMenuOverlay(){
       <div class="ov-logo" style="font-size:30px;line-height:1.1">SYSTEM MENU</div>
       <div class="ov-sub" style="margin-bottom:12px">PAUSED CONTROL PANEL</div>
       <div class="menu-stats" id="menu-stats">WAVE 1 | COINS 200 | INTEGRITY 100%</div>
+      <div class="audio-settings">
+        <div class="audio-settings-title">🔊 AUDIO</div>
+        <div class="audio-row">
+          <label for="musicVolSlider">MUSIC</label>
+          <input type="range" id="musicVolSlider" min="0" max="100" step="1" oninput="setMusicVolumeUI(this.value)">
+        </div>
+        <div class="audio-row">
+          <label for="sfxVolSlider">SFX</label>
+          <input type="range" id="sfxVolSlider" min="0" max="100" step="1" oninput="setSfxVolumeUI(this.value)">
+        </div>
+        <button class="ov-btn menu-btn menu-btn-ghost audio-mute-toggle" id="menuMuteBtn" type="button" onclick="toggleMuteAudio()">🔊 MUTE ALL AUDIO</button>
+      </div>
       <div class="menu-actions">
         <button class="ov-btn menu-btn" type="button" onclick="resumeFromMenu()">RESUME</button>
         <button class="ov-btn menu-btn" type="button" onclick="openHowToPlay()">HOW TO PLAY</button>
@@ -302,6 +314,7 @@ function ensureMenuOverlay(){
   const box=wrap.querySelector('.menu-box');
   if(box)box.addEventListener('click',e=>e.stopPropagation());
   app.appendChild(wrap);
+  syncAudioControls();
 }
 
 function syncMenuOverlay(){
@@ -311,6 +324,45 @@ function syncMenuOverlay(){
   el.classList.toggle('hidden',!menuOpen);
   el.setAttribute('aria-hidden',menuOpen?'false':'true');
   syncMenuButton();
+  syncAudioControls();
+}
+
+// ══════════════════════════════════════════
+//  AUDIO CONTROLS
+// ══════════════════════════════════════════
+function syncAudioControls(){
+  const ga=window.GameAudio;
+  const state=ga?ga.getState():{available:false,muted:false,musicVol:0.35,sfxVol:0.55};
+  const musicSlider=document.getElementById('musicVolSlider');
+  const sfxSlider=document.getElementById('sfxVolSlider');
+  if(musicSlider)musicSlider.value=Math.round((state.musicVol||0)*100);
+  if(sfxSlider)sfxSlider.value=Math.round((state.sfxVol||0)*100);
+  const menuBtn=document.getElementById('menuMuteBtn');
+  if(menuBtn)menuBtn.textContent=state.muted?'🔇 UNMUTE AUDIO':'🔊 MUTE ALL AUDIO';
+  syncMuteButton();
+}
+function syncMuteButton(){
+  const ga=window.GameAudio;
+  const muted=ga?ga.getState().muted:false;
+  const btn=document.getElementById('muteBtn');
+  const icon=document.getElementById('muteIcon');
+  if(icon)icon.textContent=muted?'🔇':'🔊';
+  if(btn){
+    btn.classList.toggle('active',muted);
+    btn.setAttribute('aria-pressed',muted?'true':'false');
+  }
+}
+function setMusicVolumeUI(v){
+  window.GameAudio?.setMusicVolume(Number(v)/100);
+}
+function setSfxVolumeUI(v){
+  window.GameAudio?.setSfxVolume(Number(v)/100);
+}
+function toggleMuteAudio(){
+  window.GameAudio?.unlock();
+  const nowMuted=window.GameAudio?.toggleMute();
+  syncAudioControls();
+  if(!nowMuted)window.GameAudio?.playSfx('uiClick');
 }
 
 function ensureHowToPlayOverlay(){
@@ -564,8 +616,9 @@ function renderTutorialStep(){
 function positionCurrentTutorialStep(){
   const step=TUTORIAL_STEPS[tutorialIdx];
   if(!step)return;
-  const placementFocus=document.body.classList.contains('tutorial-placement-focus');
-  const targetEl=placementFocus?document.getElementById('canvas'):(step.target?document.querySelector(step.target):null);
+  const targetEl=document.body.classList.contains('tutorial-placement-focus')
+    ?document.getElementById('canvas')
+    :(step.target?document.querySelector(step.target):null);
   positionTutorialUI(targetEl);
 }
 
@@ -678,6 +731,7 @@ function restartGame(){
   gamePaused=false;
   syncPauseButton();
   S=null;
+  window.GameAudio?.stopMusic();
   playerName=normalizeNickname(playerName||safeGetStoredName());
   renderLoginOverlay(playerName);
 }
@@ -770,7 +824,9 @@ function setPaused(next,force=false){
 
 function togglePause(){
   if(!S||S.over)return;
-  setPaused(!gamePaused);
+  const willPause=!gamePaused;
+  setPaused(willPause);
+  window.GameAudio?.playSfx(willPause?'pause':'resume');
 }
 
 // ══════════════════════════════════════════
@@ -984,6 +1040,7 @@ function upgradeTower(){
   updCoins();
   addLog('ok',ts(),`${t.def.lbl} upgraded to LV ${t.level}`);
   addSN('grn','⬆',`${t.def.lbl} upgraded`,`Level ${t.level}/${MAX_TOWER_LEVEL}`);
+  window.GameAudio?.playSfx('upgrade');
 }
 
 function sellTower(){
@@ -1001,6 +1058,7 @@ function sellTower(){
   updCoins();
   addLog('ok',ts(),`${t.def.lbl} sold for ${value} coins`);
   addSN('yel','💰',`${t.def.lbl} sold`,`+${value} coins refunded`);
+  window.GameAudio?.playSfx('sell');
 }
 
 function buyFixServer(){
@@ -1017,6 +1075,7 @@ function buyFixServer(){
   addLog('ok',ts(),'Fix Server initiated (+'+FIX_SERVER_HEAL+'% HP over 2.5s)');
   addSN('blu','🔧','Server Repair',`Starting healing process... [${S.fixUsesLeft} uses left]`);
   mn('🔧 Server repair initiated...','ok');
+  window.GameAudio?.playSfx('heal');
 }
 
 function syncFixServerButton(){
@@ -1068,6 +1127,7 @@ function handleCanvasDown(e){
   refreshSel(t);refreshTList();updCoins();
   banner();
   addLog('info',ts(),'Tower '+d.lbl+' placed at '+t.ip);
+  window.GameAudio?.playSfx('towerPlace');
   document.dispatchEvent(new CustomEvent('tn:towerPlaced',{detail:t}));
 }
 canvas.addEventListener('pointerdown',handleCanvasDown,{passive:false});
@@ -1115,6 +1175,7 @@ function doConnect(){
       addLog('ok',ts(),'Connection Successful!',true);
       addLog('info',ts(),v+' is now ONLINE');
       addSN('grn','✅',t.def.lbl+' Online',v+' connected to server');
+      window.GameAudio?.playSfx('towerConnect');
       document.dispatchEvent(new CustomEvent('tn:towerConnected',{detail:t}));
     }
   });
@@ -1163,12 +1224,16 @@ function mn(msg,type){
   const d=document.createElement('div');d.className='mn '+type;
   d.innerHTML=`<span>${type==='dmg'?'✉️':'✅'}</span>${msg}`;
   el.appendChild(d);setTimeout(()=>d.remove(),2200);
+  if(type==='dmg')window.GameAudio?.playSfx('denied');
+  else if(type==='ok')window.GameAudio?.playSfx('confirm');
+  else if(type==='blk')window.GameAudio?.playSfx('unlock');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  UI UPDATES
 // ═════════════════════════════════════════════════════════════════════════════
 function updCoins(){document.getElementById('tb-coins').textContent=S.coins;syncFixServerButton();}
+let lowHpWarned=false;
 function updHP(){
   const p=Math.max(0,S.hp);
   document.getElementById('tb-hppct').textContent=p+'%';
@@ -1176,6 +1241,12 @@ function updHP(){
   const fill=document.getElementById('hpfill');
   fill.style.background=p>50?'linear-gradient(90deg,#00aa44,#00ff80)':p>25?'linear-gradient(90deg,#aa8800,#ffcc00)':'linear-gradient(90deg,#aa0022,#ff2244)';
   syncFixServerButton();
+  if(p<30&&p>0&&!lowHpWarned){
+    lowHpWarned=true;
+    window.GameAudio?.playSfx('lowHp');
+  }else if(p>=30){
+    lowHpWarned=false;
+  }
 }
 function banner(){
   const el=document.getElementById('phase-banner');
@@ -1243,6 +1314,7 @@ function movePkts(dt){
       S.hp=Math.max(0,S.hp-dmg);
       mn(`${p.n} breached! -${dmg}%`,'dmg');
       addSN('red','✉️',p.n+' breached!',`-${dmg}% Server Integrity`);
+      window.GameAudio?.playSfx('breach');
       p.dead=true;updHP();
       if(S.hp<=0)endGame(false);
       continue;
@@ -1269,6 +1341,7 @@ function attackPkts(dt){
     const em=t.def.layer>tgt.l?1.25:t.def.layer<tgt.l?.75:1;
     const dmg=stats.dmg*lm*em*eff;
     tgt.hp-=dmg;t.lhit={x:tgt.x,y:tgt.y,timer:.25};t.cd=stats.rate;
+    window.GameAudio?.playThrottled('towerShoot',70);
     if(tgt.effect==='slow'&&Math.random()<.3){
       S.towers.forEach(tw=>{if(dst(tw.x,tw.y,tgt.x,tgt.y)<80)tw.cd+=0.5;});
     }
@@ -1282,6 +1355,7 @@ function attackPkts(dt){
     if(tgt.hp<=0){
       tgt.dead=true;S.coins+=12;updCoins();
       addSN('grn','✅',t.def.lbl+' blocked!',tgt.n+' eliminated');
+      window.GameAudio?.playSfx('enemyKill');
     }
   }
   S.towers.forEach(t=>{if(t.weakened>0)t.weakened-=dt;});
@@ -1523,11 +1597,13 @@ function beginWave(){
   document.getElementById('rprog').style.strokeDashoffset=120;
   banner();
   addSN('red','⚠️','Wave '+S.wave+' incoming!',S.enemies.length+' packets detected');
+  window.GameAudio?.playSfx('waveStart');
 }
 function showWaveDone(){
   const bonus=70+S.wave*25;S.coins+=bonus;updCoins();
   document.getElementById('wd-sub').textContent=`Wave ${S.wave} cleared! +${bonus} coins.`;
   document.getElementById('wave-done').style.display='flex';
+  window.GameAudio?.playSfx('waveClear');
 }
 function doNextWave(){
   document.getElementById('wave-done').style.display='none';
@@ -1547,6 +1623,8 @@ function endGame(win){
   const ov=document.getElementById('overlay');
   ov.innerHTML=`<div class="ov-box"><div class="ov-logo" style="color:${win?'#00ff80':'#ff2244'}">${win?'✓ SECURED':'✗ BREACHED'}</div><div class="ov-sub">${win?'NETWORK DEFENDED':'SERVER COMPROMISED'}</div><div class="ov-desc">${win?'All 10 OSI waves defeated!<br>Network fully secured.':'The main server was compromised.<br>Try again!'}<br><br><span style="font-family:Share Tech Mono,monospace;font-size:11px;color:#4a7aaa">Operator: ${escapeHtml(displayNickname(playerName))}<br>Wave: ${S.wave}/${MAX_WAVE} | Towers: ${S.towers.length} | Integrity: ${Math.max(0,S.hp)}%</span></div><button class="ov-btn" onclick="restartGame()">↺ REBOOT SYSTEM</button></div>`;
   ov.style.display='flex';
+  window.GameAudio?.stopMusic();
+  window.GameAudio?.playSfx(win?'victory':'defeat');
 }
 
 async function enterGameFullscreen(){
@@ -1575,6 +1653,8 @@ function startGame(){
   }
   safeSetStoredName(playerName);
   document.getElementById('overlay').style.display='none';
+  window.GameAudio?.unlock();
+  window.GameAudio?.startMusic();
   document.getElementById('wave-done').style.display='none';
   document.getElementById('clog').innerHTML='';
   document.getElementById('snots').innerHTML='';
@@ -1607,7 +1687,15 @@ window.toggleMenu=toggleMenu;window.toggleLogFocus=toggleLogFocus;window.restart
 window.openHowToPlay=openHowToPlay;window.closeHowToPlay=closeHowToPlay;window.showHowToPlay=openHowToPlay;
 window.proceedFromLogin=proceedFromLogin;window.chooseSkillLevel=chooseSkillLevel;
 window.tutorialNext=tutorialNext;window.tutorialBack=tutorialBack;window.skipTutorial=skipTutorial;window.startTutorialFromMenu=startTutorialFromMenu;
+window.toggleMuteAudio=toggleMuteAudio;window.setMusicVolumeUI=setMusicVolumeUI;window.setSfxVolumeUI=setSfxVolumeUI;
+document.addEventListener('click',(e)=>{
+  const btn=e.target.closest('button');
+  if(!btn||btn.disabled)return;
+  window.GameAudio?.playSfx('uiClick');
+},true);
+
 wireTopbarActions();
+syncMuteButton();
 renderEnemyRoster();
 renderLoginOverlay(safeGetStoredName());
 syncOrientationLock();

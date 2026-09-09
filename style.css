@@ -470,6 +470,71 @@ body:not(.game-ready) #app{opacity:0;pointer-events:none}
 }
 .menu-btn-ghost:hover{box-shadow:0 0 18px #00aaff22}
 
+.audio-settings{
+  background:#071829;
+  border:1px solid #1a3a5c;
+  border-radius:10px;
+  padding:14px 16px 16px;
+  margin-bottom:16px;
+  text-align:left;
+}
+.audio-settings-title{
+  font-family:'Orbitron',monospace;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  color:#00aaff;
+  margin-bottom:10px;
+}
+.audio-row{
+  display:grid;
+  grid-template-columns:52px 1fr;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.audio-row label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  color:#8aaabb;
+  letter-spacing:1px;
+}
+.audio-row input[type="range"]{
+  -webkit-appearance:none;
+  appearance:none;
+  width:100%;
+  height:5px;
+  border-radius:4px;
+  background:#0b1e32;
+  outline:none;
+  cursor:pointer;
+}
+.audio-row input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width:15px;height:15px;
+  border-radius:50%;
+  background:#00aaff;
+  border:2px solid #071829;
+  box-shadow:0 0 8px #00aaff88;
+  cursor:pointer;
+}
+.audio-row input[type="range"]::-moz-range-thumb{
+  width:15px;height:15px;
+  border-radius:50%;
+  background:#00aaff;
+  border:2px solid #071829;
+  box-shadow:0 0 8px #00aaff88;
+  cursor:pointer;
+  border:none;
+}
+.audio-mute-toggle{
+  width:100%;
+  margin-top:8px;
+  padding:9px 14px;
+  font-size:10.5px;
+}
+
 #howto-overlay{
   position:fixed;inset:0;background:#020812e6;
   display:flex;align-items:center;justify-content:center;z-index:950;

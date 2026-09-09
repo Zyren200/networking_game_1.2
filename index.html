@@ -62,6 +62,7 @@
     <button class="tb-btn"><span>📖</span>LOG</button>
     <button class="tb-btn" id="pauseBtn" onclick="togglePause()" aria-pressed="false" title="Pause or resume the game"><span>⏸</span>PAUSE</button>
     <button class="tb-btn"><span>⚙️</span>MENU</button>
+    <button class="tb-btn" id="muteBtn" type="button" onclick="toggleMuteAudio()" aria-pressed="false" title="Mute or unmute audio"><span id="muteIcon">🔊</span>SOUND</button>
   </div>
 </div>
 
@@ -314,13 +315,14 @@
     <div class="tt-actions">
       <button class="tt-skip" type="button" onclick="skipTutorial()">SKIP</button>
       <div class="tt-nav">
-          <button class="tt-back" type="button" id="tutorial-back-btn" onclick="tutorialBack()">BACK</button>
-          <button class="tt-next" type="button" id="tutorial-next-btn" onclick="tutorialNext()">NEXT</button>
+        <button class="tt-back" type="button" id="tutorial-back-btn" onclick="tutorialBack()">BACK</button>
+        <button class="tt-next" type="button" id="tutorial-next-btn" onclick="tutorialNext()">NEXT</button>
       </div>
     </div>
   </div>
 </div>
 
+<script src="audio.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
