@@ -308,7 +308,10 @@
 <div id="tutorial-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
   <div id="tutorial-spotlight"></div>
   <div id="tutorial-tooltip">
-    <div class="tt-step" id="tutorial-stepcount">STEP 1/10</div>
+    <div class="tt-header-row">
+      <div class="tt-step" id="tutorial-stepcount">STEP 1/10</div>
+      <button class="tt-voice-toggle" id="tutorial-voice-toggle" type="button" onclick="toggleTutorialVoice()" title="Turn voice narration on or off" aria-pressed="true">🔊 VOICE</button>
+    </div>
     <div class="tt-title" id="tutorial-title">Welcome</div>
     <div class="tt-text" id="tutorial-text"></div>
     <div class="tt-hint" id="tutorial-hint"></div>

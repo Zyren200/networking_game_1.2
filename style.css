@@ -747,12 +747,41 @@ body.tutorial-placement-focus #tutorial-overlay #tutorial-spotlight{
 #tutorial-tooltip.tt-wide{
   width:min(440px,calc(100vw - 32px));
 }
+.tt-header-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:6px;
+}
 .tt-step{
   font-family:'Share Tech Mono',monospace;
   font-size:9px;
   color:#00aaff;
   letter-spacing:2px;
-  margin-bottom:6px;
+}
+.tt-voice-toggle{
+  flex:0 0 auto;
+  background:#0b1e32;
+  border:1px solid #1a3a5c;
+  border-radius:6px;
+  padding:3px 8px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;
+  letter-spacing:.5px;
+  color:#00aaff;
+  cursor:pointer;
+  transition:.15s;
+}
+.tt-voice-toggle:hover{border-color:#00aaff}
+.tt-voice-toggle.off{
+  color:#5a8aaa;
+  border-color:#2a3a4c;
+  opacity:.7;
+}
+.tt-next.tt-speaking{
+  opacity:.75;
+  cursor:not-allowed;
 }
 .tt-title{
   font-family:'Orbitron',monospace;
@@ -2354,6 +2383,17 @@ html,body{
 }
 /* ─── SKILL-CHECK + TUTORIAL: MOBILE / LANDSCAPE TUNING ─── */
 @media (max-width: 620px), (max-height: 430px) and (orientation: landscape){
+  .tt-voice-toggle{
+    padding:3px 6px;
+    font-size:0;
+  }
+  .tt-voice-toggle::before{
+    content:'🔊';
+    font-size:11px;
+  }
+  .tt-voice-toggle.off::before{
+    content:'🔇';
+  }
   .skill-box{
     padding:22px 18px 18px;
   }

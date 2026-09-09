@@ -528,6 +528,124 @@ const TUTORIAL_STEPS=[
 
 let tutorialActive=false,tutorialIdx=0,tutorialStepDone=false,tutorialResizeBound=false;
 
+// ── TUTORIAL VOICEOVER (Web Speech API) ──────────────────────────────
+const TTS_PREF_KEY='towernet.tutorial.voice';
+const ttsSupported=typeof window!=='undefined'&&'speechSynthesis' in window;
+let ttsEnabled=true;
+let ttsSpeaking=false;
+let ttsPendingAdvance=false;
+let ttsVoice=null;
+let ttsVoicesReady=false;
+
+(function loadTtsPref(){
+  try{
+    const raw=localStorage.getItem(TTS_PREF_KEY);
+    if(raw==='off')ttsEnabled=false;
+  }catch(_e){/* ignore */}
+})();
+
+function pickTtsVoice(){
+  if(!ttsSupported)return;
+  const voices=speechSynthesis.getVoices()||[];
+  if(!voices.length)return;
+  ttsVoice=voices.find(v=>/en-US/i.test(v.lang)&&/female|Samantha|Google US English|Zira/i.test(v.name))
+    ||voices.find(v=>/en-US/i.test(v.lang))
+    ||voices.find(v=>/^en/i.test(v.lang))
+    ||voices[0];
+  ttsVoicesReady=true;
+}
+if(ttsSupported){
+  pickTtsVoice();
+  speechSynthesis.addEventListener?.('voiceschanged',pickTtsVoice);
+}
+
+function stripTutorialHtml(html){
+  const div=document.createElement('div');
+  div.innerHTML=html;
+  return (div.textContent||div.innerText||'').replace(/\s+/g,' ').trim();
+}
+
+let ttsGeneration=0;
+
+function cancelTutorialSpeech(){
+  ttsGeneration++;
+  if(ttsSupported){
+    try{speechSynthesis.cancel();}catch(_e){/* ignore */}
+  }
+  ttsSpeaking=false;
+  ttsPendingAdvance=false;
+}
+
+function speakTutorialStep(step){
+  cancelTutorialSpeech();
+  if(!ttsSupported||!ttsEnabled||!step){
+    updateTutorialNextEnabled();
+    return;
+  }
+  const myGen=ttsGeneration;
+  const spoken=`${step.title}. ${stripTutorialHtml(step.text)}`;
+  const utter=new SpeechSynthesisUtterance(spoken);
+  utter.lang='en-US';
+  utter.rate=1;
+  utter.pitch=1;
+  if(ttsVoice)utter.voice=ttsVoice;
+  ttsSpeaking=true;
+  updateTutorialNextEnabled();
+  // safety net: if the browser's TTS backend never fires onend/onerror
+  // (e.g. no working speech engine on the device), don't let the
+  // tutorial get permanently stuck — force-complete after a generous
+  // estimate of how long the line should take to speak.
+  const estMs=Math.min(20000,Math.max(2500,spoken.length*70));
+  let settled=false;
+  const finish=()=>{
+    if(settled||myGen!==ttsGeneration)return;
+    settled=true;
+    clearTimeout(safetyTimer);
+    ttsSpeaking=false;
+    updateTutorialNextEnabled();
+    if(ttsPendingAdvance){
+      ttsPendingAdvance=false;
+      tutorialNext();
+    }
+  };
+  const safetyTimer=setTimeout(finish,estMs);
+  utter.onend=finish;
+  utter.onerror=finish;
+  try{speechSynthesis.speak(utter);}catch(_e){
+    finish();
+  }
+}
+
+function updateTutorialNextEnabled(){
+  const step=TUTORIAL_STEPS[tutorialIdx];
+  const nextBtn=tEl('tutorial-next-btn');
+  if(!nextBtn||!step)return;
+  const gateOk=!step.gate||tutorialStepDone;
+  const ready=gateOk&&!ttsSpeaking;
+  nextBtn.disabled=!ready;
+  nextBtn.classList.toggle('tt-speaking',ttsSpeaking);
+  const finishLabel=tutorialIdx===TUTORIAL_STEPS.length-1?'FINISH':'NEXT';
+  nextBtn.textContent=ttsSpeaking?'🔊 …':finishLabel;
+}
+
+function toggleTutorialVoice(){
+  ttsEnabled=!ttsEnabled;
+  try{localStorage.setItem(TTS_PREF_KEY,ttsEnabled?'on':'off');}catch(_e){/* ignore */}
+  const btn=tEl('tutorial-voice-toggle');
+  if(btn){
+    btn.classList.toggle('off',!ttsEnabled);
+    btn.setAttribute('aria-pressed',ttsEnabled?'true':'false');
+    btn.textContent=ttsEnabled?'🔊 VOICE':'🔇 VOICE';
+  }
+  if(!ttsEnabled){
+    cancelTutorialSpeech();
+    updateTutorialNextEnabled();
+  }else if(tutorialActive){
+    const step=TUTORIAL_STEPS[tutorialIdx];
+    if(step)speakTutorialStep(step);
+  }
+}
+
 function tEl(id){return document.getElementById(id);}
 
 function isMobileDrawerMode(){
@@ -545,6 +663,13 @@ function beginTutorial(){
   setPaused(true,true);
   const overlay=tEl('tutorial-overlay');
   if(overlay)overlay.classList.remove('hidden');
+  const voiceBtn=tEl('tutorial-voice-toggle');
+  if(voiceBtn){
+    voiceBtn.classList.toggle('off',!ttsEnabled);
+    voiceBtn.setAttribute('aria-pressed',ttsEnabled?'true':'false');
+    voiceBtn.textContent=ttsEnabled?'🔊 VOICE':'🔇 VOICE';
+    voiceBtn.style.display=ttsSupported?'':'none';
+  }
   if(!tutorialResizeBound){
     window.addEventListener('resize',onTutorialResize);
     tutorialResizeBound=true;
@@ -579,8 +704,7 @@ function markTutorialStepComplete(){
     hintEl.textContent='✅ Great job! Continuing...';
     hintEl.classList.add('tt-hint-ok');
   }
-  const nextBtn=tEl('tutorial-next-btn');
-  if(nextBtn)nextBtn.disabled=false;
+  updateTutorialNextEnabled();
   setTimeout(()=>{if(tutorialActive)tutorialNext();},1000);
 }
 
@@ -601,9 +725,8 @@ function renderTutorialStep(){
   hintEl.textContent=step.gate?(step.hint||'Complete this step to continue...'):'';
   const backBtn=tEl('tutorial-back-btn');
   backBtn.style.visibility=tutorialIdx===0?'hidden':'visible';
-  const nextBtn=tEl('tutorial-next-btn');
-  nextBtn.textContent=tutorialIdx===TUTORIAL_STEPS.length-1?'FINISH':'NEXT';
-  nextBtn.disabled=!!step.gate;
+  speakTutorialStep(step);
+  updateTutorialNextEnabled();
 
   const mobileMode=isMobileDrawerMode();
   if(mobileMode){
@@ -654,19 +777,25 @@ function positionTutorialUI(targetEl){
 function tutorialNext(){
   const step=TUTORIAL_STEPS[tutorialIdx];
   if(step&&step.gate&&!tutorialStepDone)return;
+  if(ttsSpeaking){ttsPendingAdvance=true;return;}
   if(tutorialIdx>=TUTORIAL_STEPS.length-1){endTutorial();return;}
   tutorialIdx++;
   renderTutorialStep();
 }
 function tutorialBack(){
   if(tutorialIdx<=0)return;
+  cancelTutorialSpeech();
   tutorialIdx--;
   renderTutorialStep();
 }
-function skipTutorial(){endTutorial();}
+function skipTutorial(){
+  cancelTutorialSpeech();
+  endTutorial();
+}
 
 function endTutorial(){
   tutorialActive=false;
+  cancelTutorialSpeech();
   document.body.classList.remove('tutorial-placement-focus');
   document.removeEventListener('tn:towerPlaced',onTutorialTowerPlaced);
   document.removeEventListener('tn:towerConnected',onTutorialTowerConnected);
@@ -1687,6 +1816,7 @@ window.toggleMenu=toggleMenu;window.toggleLogFocus=toggleLogFocus;window.restart
 window.openHowToPlay=openHowToPlay;window.closeHowToPlay=closeHowToPlay;window.showHowToPlay=openHowToPlay;
 window.proceedFromLogin=proceedFromLogin;window.chooseSkillLevel=chooseSkillLevel;
 window.tutorialNext=tutorialNext;window.tutorialBack=tutorialBack;window.skipTutorial=skipTutorial;window.startTutorialFromMenu=startTutorialFromMenu;
+window.toggleTutorialVoice=toggleTutorialVoice;
 window.toggleMuteAudio=toggleMuteAudio;window.setMusicVolumeUI=setMusicVolumeUI;window.setSfxVolumeUI=setSfxVolumeUI;
 document.addEventListener('click',(e)=>{
   const btn=e.target.closest('button');
