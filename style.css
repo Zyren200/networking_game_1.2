@@ -747,6 +747,10 @@ body.tutorial-placement-focus #tutorial-overlay #tutorial-spotlight{
 #tutorial-tooltip.tt-wide{
   width:min(440px,calc(100vw - 32px));
 }
+#tutorial-tooltip.tt-corner{
+  width:min(260px,calc(100vw - 32px));
+  background:linear-gradient(180deg,#0d1f35f2,#071220f2);
+}
 .tt-header-row{
   display:flex;
   align-items:center;

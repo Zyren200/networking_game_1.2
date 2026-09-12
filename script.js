@@ -765,11 +765,27 @@ function positionTutorialUI(targetEl){
   const vw=window.innerWidth,vh=window.innerHeight;
   tip.style.transform='none';
   const tw=tip.offsetWidth||300,th=tip.offsetHeight||180;
-  let top=r.bottom+pad+14,above=false;
-  if(top+th>vh-10){top=r.top-pad-14-th;above=true;if(top<8)top=8;}
-  let left=r.left+r.width/2-tw/2;
-  left=Math.max(8,Math.min(left,vw-tw-8));
-  tip.style.left=left+'px';
+
+  const targetArea=r.width*r.height,viewportArea=vw*vh;
+  const isLargeTarget=targetArea>viewportArea*0.5;
+  const isTallPanel=!isLargeTarget&&r.height>r.width*1.2&&r.height>200;
+  const spaceRight=vw-r.right,spaceLeft=r.left;
+  const canSideDock=isTallPanel&&(spaceRight>=tw+pad+16||spaceLeft>=tw+pad+16);
+  let left,top,above=false;
+  tip.classList.toggle('tt-corner',isLargeTarget);
+  if(isLargeTarget){
+    left=vw-tw-16;
+    top=vh-th-16;
+  }else if(canSideDock){
+    left=spaceRight>=tw+pad+16?r.right+pad+14:r.left-pad-14-tw;
+    top=Math.min(Math.max(8,r.top),vh-th-8);
+  }else{
+    top=r.bottom+pad+14;
+    if(top+th>vh-10){top=r.top-pad-14-th;above=true;if(top<8)top=8;}
+    left=r.left+r.width/2-tw/2;
+    left=Math.max(8,Math.min(left,vw-tw-8));
+  }
+  tip.style.left=Math.max(8,left)+'px';
   tip.style.top=Math.max(8,top)+'px';
   tip.classList.toggle('tt-above',above);
 }
