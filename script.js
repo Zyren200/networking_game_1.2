@@ -771,8 +771,7 @@ function positionTutorialUI(targetEl){
   const isTallPanel=!isLargeTarget&&r.height>r.width*1.2&&r.height>200;
   const spaceRight=vw-r.right,spaceLeft=r.left;
   const canSideDock=isTallPanel&&(spaceRight>=tw+pad+16||spaceLeft>=tw+pad+16);
-  let left,top,above=false;
-  tip.classList.toggle('tt-corner',isLargeTarget);
+  let left,top,above=false,corner=isLargeTarget;
   if(isLargeTarget){
     left=vw-tw-16;
     top=vh-th-16;
@@ -780,11 +779,24 @@ function positionTutorialUI(targetEl){
     left=spaceRight>=tw+pad+16?r.right+pad+14:r.left-pad-14-tw;
     top=Math.min(Math.max(8,r.top),vh-th-8);
   }else{
-    top=r.bottom+pad+14;
-    if(top+th>vh-10){top=r.top-pad-14-th;above=true;if(top<8)top=8;}
-    left=r.left+r.width/2-tw/2;
-    left=Math.max(8,Math.min(left,vw-tw-8));
+    const belowTop=r.bottom+pad+14,aboveTop=r.top-pad-14-th;
+    if(belowTop+th<=vh-10){
+      top=belowTop;
+    }else if(aboveTop>=8){
+      top=aboveTop;above=true;
+    }else{
+      // no room above or below without covering the target (common on
+      // mobile drawers) — dock to whichever bottom corner is clear of it
+      corner=true;
+      left=(r.left+r.width/2<vw/2)?vw-tw-16:16;
+      top=vh-th-16;
+    }
+    if(!corner){
+      left=r.left+r.width/2-tw/2;
+      left=Math.max(8,Math.min(left,vw-tw-8));
+    }
   }
+  tip.classList.toggle('tt-corner',corner);
   tip.style.left=Math.max(8,left)+'px';
   tip.style.top=Math.max(8,top)+'px';
   tip.classList.toggle('tt-above',above);
@@ -806,7 +818,9 @@ function tutorialBack(){
 }
 function skipTutorial(){
   cancelTutorialSpeech();
-  endTutorial();
+  if(tutorialIdx>=TUTORIAL_STEPS.length-1){endTutorial();return;}
+  tutorialIdx++;
+  renderTutorialStep();
 }
 
 function endTutorial(){
