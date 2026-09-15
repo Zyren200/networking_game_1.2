@@ -1,10 +1,9 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   TOWERNET — PROCEDURAL AUDIO ENGINE
+   TOWERNET — AUDIO ENGINE
    ──────────────────────────────────────────────────────────────────────────
-   Every sound (music + SFX) is synthesized at runtime with the Web Audio
-   API. There are no external audio files, so there is nothing that can be
-   "missing" or unlicensed — this module either works, or it quietly does
-   nothing and the game keeps running exactly as before.
+   SFX are synthesized at runtime with the Web Audio API. Background music
+   is the looping file bakground.mp3, routed through the same music gain
+   node so volume/mute controls keep working.
 
    Public API (window.GameAudio):
      unlock()                 — call from a user-gesture handler to start audio
@@ -224,73 +223,34 @@
     playSfx(name);
   });
 
-  // ── procedural background music (loop) ──────────────────────────────
-  const BPM=98;
-  const STEP=60/BPM/4; // 16th note length in seconds
-  const BAR_STEPS=16;
-  // simple 4-chord minor progression, one root per bar (A C G F — cyberpunk-ish)
-  const BASS_ROOTS=[110.00,130.81,98.00,87.31]; // A2, C3, G2, F2
-  const ARP_INTERVALS=[0,3,7,10]; // minor7-ish color tones (semitones)
-
-  let musicTimer=null;
+  // ── background music (looping mp3 file) ──────────────────────────────
+  let musicEl=null;
+  let musicSrcNode=null;
   let musicPlaying=false;
-  let nextNoteTime=0;
-  let currentStep=0;
-  let currentBar=0;
-  const LOOKAHEAD_MS=25;
-  const SCHEDULE_AHEAD=0.14;
 
-  function midiToFreq(base,semitones){return base*Math.pow(2,semitones/12);}
-
-  function scheduleBassStep(t,step,bar){
-    if(step%4===0){
-      const root=BASS_ROOTS[bar%BASS_ROOTS.length];
-      osc('triangle',root,t,STEP*3.6,musicGain,0.10);
-    }
-  }
-  function scheduleArpStep(t,step,bar){
-    // arpeggiate on off-beats for a light, non-fatiguing texture
-    if(step%2===1){
-      const root=BASS_ROOTS[bar%BASS_ROOTS.length]*2; // one octave up
-      const iv=ARP_INTERVALS[(Math.floor(step/2))%ARP_INTERVALS.length];
-      const f=midiToFreq(root,iv);
-      osc('sine',f,t,STEP*0.9,musicGain,0.045);
-    }
-  }
-  function scheduleHat(t,step){
-    if(step%2===0){
-      noiseBurst(t,0.03,musicGain,0.03,7000);
-    }
-  }
-
-  function musicScheduler(){
-    if(!ctx)return;
-    while(nextNoteTime<ctx.currentTime+SCHEDULE_AHEAD){
-      scheduleBassStep(nextNoteTime,currentStep,currentBar);
-      scheduleArpStep(nextNoteTime,currentStep,currentBar);
-      scheduleHat(nextNoteTime,currentStep);
-      nextNoteTime+=STEP;
-      currentStep++;
-      if(currentStep>=BAR_STEPS){
-        currentStep=0;
-        currentBar=(currentBar+1)%BASS_ROOTS.length;
-      }
+  function ensureMusicEl(){
+    if(musicEl)return;
+    musicEl=new Audio('towernet.mp3.wav');
+    musicEl.loop=true;
+    musicEl.preload='auto';
+    if(ctx){
+      musicSrcNode=ctx.createMediaElementSource(musicEl);
+      musicSrcNode.connect(musicGain);
     }
   }
 
   const startMusic=safe(function(){
-    if(!available||musicPlaying)return;
+    if(musicPlaying)return;
     unlock();
     if(!ctx)return;
+    ensureMusicEl();
     musicPlaying=true;
-    currentStep=0;currentBar=0;
-    nextNoteTime=ctx.currentTime+0.05;
-    if(musicTimer)clearInterval(musicTimer);
-    musicTimer=setInterval(musicScheduler,LOOKAHEAD_MS);
+    musicEl.currentTime=musicEl.currentTime||0;
+    musicEl.play().catch(()=>{musicPlaying=false;});
   });
   const stopMusic=safe(function(){
     musicPlaying=false;
-    if(musicTimer){clearInterval(musicTimer);musicTimer=null;}
+    if(musicEl)musicEl.pause();
   });
 
   // ── public controls ──────────────────────────────────────────────────
