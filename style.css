@@ -2438,3 +2438,67 @@ html,body{
   .tt-back,.tt-next{padding:7px 11px;font-size:9px}
   .tt-skip{font-size:9px}
 }
+
+/* ─── REAL TOUCH DEVICE BASELINE (phones/tablets) ───
+   Wins over every earlier breakpoint's shrink rules: many of the tight
+   landscape blocks above push tower cards/buttons down to ~24px, which is
+   too small to reliably tap on a phone. Force a comfortable minimum here. */
+@media (pointer: coarse){
+  .tb-btn,
+  .srv-icon,
+  .mobile-panel-back,
+  #mobile-panel-tabs button,
+  .copy-btn,
+  .conn-btn,
+  .wd-btn,
+  .ov-btn,
+  .tt-back,.tt-next,.tt-skip,
+  .act{
+    min-height:44px;
+  }
+  .tcard{
+    min-height:64px;
+  }
+  .tower-sec .tc-art{
+    width:36px !important;
+    height:36px !important;
+    font-size:19px !important;
+  }
+  .tower-sec .tc-name{
+    font-size:8px !important;
+  }
+  .tower-sec .tc-lyr,
+  .tower-sec .tc-cost{
+    font-size:7px !important;
+  }
+  .tower-sec .act{
+    min-height:44px !important;
+    font-size:9px !important;
+  }
+  .trow{
+    min-height:44px;
+  }
+  .ip-field{
+    min-height:40px;
+  }
+  #tb-player,
+  .tb-btn,
+  button{
+    -webkit-tap-highlight-color:transparent;
+  }
+}
+
+/* ─── TOWERS TAB: only show it where the tower panel is actually a hidden
+   drawer. #pkt-bar is only ever transform:translateY(100%)-hidden under the
+   (max-width:700px) landscape breakpoint below — every other breakpoint
+   (820px landscape / short-height landscape, 620px portrait) keeps the tower
+   panel permanently visible, which made this button redundant/misleading
+   there. Keep this rule last so it wins over every earlier display:flex. */
+#mobile-panel-tabs button[data-panel="towers"]{
+  display:none !important;
+}
+@media (max-width: 700px) and (orientation: landscape){
+  #mobile-panel-tabs button[data-panel="towers"]{
+    display:inline-flex !important;
+  }
+}
